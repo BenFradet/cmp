@@ -1,5 +1,10 @@
 use scraper::{Html, Selector};
 
+mod er;
+mod price;
+mod provider;
+mod search;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let url = "https://www.alltricks.fr/F-11944-selles/P-1937973-selle_italia_slr_boost_endurance_superflow_noir";
