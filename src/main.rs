@@ -1,41 +1,31 @@
+use futures::{stream, StreamExt};
 use provider::Provider;
 use reqwest::Client;
 
 mod provider;
 
+const CONCURRENT_REQUESTS: usize = 2;
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     let client = Client::builder().build()?;
 
     let search = "Selle italia slr boost endurance";
 
     let providers = vec![Provider::BIKE_DISCOUNT, Provider::ALLTRICKS, Provider::STARBIKE];
-    let mut tasks = Vec::with_capacity(providers.len());
-    for p in providers {
-        tasks.push(tokio::spawn(p.crawl(&client, &search)));
-    }
 
-    let mut outputs = Vec::with_capacity(tasks.len());
-    for task in tasks {
-        outputs.push(task.await.unwrap());
-    }
+    let results = stream::iter(providers)
+        .map(|p| {
+            let client = &client;
+            async move { p.crawl(client, &search).await }
+        })
+        .buffer_unordered(CONCURRENT_REQUESTS);
 
-    println!("{:?}", outputs);
+    results.for_each(|r| async {
+        match r {
+            Ok(r) => println!("{r}"),
+            Err(e) => println!("Err: {e}"),
+        }
+    }).await;
     Ok(())
-    //let crawls = providers.map(|p| p.crawl(&client, search));
-    //let results = 
-
-    //let bd = Provider::BIKE_DISCOUNT;
-    //let bd_price = bd.crawl(&client, search).await?;
-    //println!("bd: {bd_price}");
-
-    //let at = Provider::ALLTRICKS;
-    //let at_price = at.crawl(&client, search).await?;
-    //println!("at: {at_price}");
-
-    //let sb = Provider::STARBIKE;
-    //let sb_price = sb.crawl(&client, &search).await?;
-    //println!("sb: {sb_price}");
-
-    //Ok(())
 }

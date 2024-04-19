@@ -2,6 +2,8 @@ use reqwest::{header::HeaderValue, Client, IntoUrl};
 use scraper::{Html, Selector};
 use serde_json::Value;
 
+const FLARE_SOLVER: &'static str = "http://localhost:8191/v1";
+
 pub struct Provider<'a> {
     top_level_domain: &'a str,
     search_prefix: &'a str,
@@ -34,8 +36,6 @@ impl<'a> Provider<'a> {
             bypass_cloudflare: false,
         };
 
-    pub const FLARE_SOLVER: &'static str = "http://localhost:8191/v1";
-
     pub async fn crawl(&self, client: &Client, search_term: &str) -> anyhow::Result<String> {
         let search_url = self.search_url(search_term);
         self.search(client, search_url).await
@@ -58,10 +58,7 @@ impl<'a> Provider<'a> {
         document
             .select(&selector)
             .next()
-            .map(|er| {
-                println!("{}", er.inner_html());
-                html_escape::decode_html_entities(&er.inner_html()).trim().to_string()
-            })
+            .map(|er| html_escape::decode_html_entities(&er.inner_html()).trim().to_string())
             .ok_or(anyhow::anyhow!("selector not found"))
     }
 
@@ -80,7 +77,7 @@ impl<'a> Provider<'a> {
     ) -> anyhow::Result<String> where T: IntoUrl {
         let req_body = Self::bypass_req_body(url.as_str());
         let resp = client
-            .post(Self::FLARE_SOLVER)
+            .post(FLARE_SOLVER)
             .body(req_body)
             .header("Content-Type", HeaderValue::from_static("application/json"))
             .send()
