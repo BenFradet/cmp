@@ -1,10 +1,6 @@
-use std::error::Error;
-
 use reqwest::{header::HeaderValue, Client, IntoUrl};
 use scraper::{Html, Selector};
 use serde_json::Value;
-
-use crate::er::Er;
 
 pub struct Provider<'a> {
     top_level_domain: &'a str,
@@ -40,7 +36,7 @@ impl<'a> Provider<'a> {
 
     pub const FLARE_SOLVER: &'static str = "http://localhost:8191/v1";
 
-    pub async fn crawl(&self, client: &Client, search_term: &str) -> Result<String, Box<dyn Error>> {
+    pub async fn crawl(&self, client: &Client, search_term: &str) -> anyhow::Result<String> {
         let search_url = self.search_url(search_term);
         self.search(client, search_url).await
     }
@@ -49,7 +45,7 @@ impl<'a> Provider<'a> {
         &self,
         client: &Client,
         url: T,
-    ) -> Result<String, Box<dyn Error>> where T: IntoUrl {
+    ) -> anyhow::Result<String> where T: IntoUrl {
         let text = if self.bypass_cloudflare {
             Self::bypass_search(client, url).await?
         } else {
@@ -57,7 +53,8 @@ impl<'a> Provider<'a> {
         };
         let document = Html::parse_document(&text);
         let selector = Selector::parse(&self.price_selector)
-            .map_err(|e| e.to_string())?;
+            // no send for errors
+            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
         document
             .select(&selector)
             .next()
@@ -65,21 +62,22 @@ impl<'a> Provider<'a> {
                 println!("{}", er.inner_html());
                 html_escape::decode_html_entities(&er.inner_html()).trim().to_string()
             })
-            .ok_or(Box::new(Er::new("selector not found")))
+            .ok_or(anyhow::anyhow!("selector not found"))
     }
 
     async fn direct_search<T>(
         client: &Client,
         url: T,
-    ) -> Result<String, reqwest::Error> where T: IntoUrl {
+    ) -> anyhow::Result<String> where T: IntoUrl {
         let resp = client.get(url).send().await?;
         resp.text().await
+            .map_err(|e| anyhow::anyhow!(e.to_string()))
     }
 
     async fn bypass_search<T>(
         client: &Client,
         url: T,
-    ) -> Result<String, Box<dyn Error>> where T: IntoUrl {
+    ) -> anyhow::Result<String> where T: IntoUrl {
         let req_body = Self::bypass_req_body(url.as_str());
         let resp = client
             .post(Self::FLARE_SOLVER)
@@ -92,7 +90,7 @@ impl<'a> Provider<'a> {
         json["solution"]["response"]
             .as_str()
             .map(|s| s.to_owned())
-            .ok_or(Box::new(Er::new("solution.response could not be found in json")))
+            .ok_or(anyhow::anyhow!("solution.response could not be found in json"))
     }
 
     fn bypass_req_body(url: &str) -> String {
