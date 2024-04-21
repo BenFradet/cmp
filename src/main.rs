@@ -2,42 +2,12 @@ use std::convert::Infallible;
 
 use tokio::task::LocalSet;
 use warp::Filter;
-use yew::{prelude::*, suspense::SuspensionResult};
 
-use crate::state::State;
+use crate::app::App;
 
+mod app;
 mod provider;
 mod state;
-
-#[hook]
-fn use_results() -> SuspensionResult<Vec<String>> {
-    let state = use_state(State::new);
-    let result = match *state.value.borrow() {
-        Some(ref strs) => Ok(strs.clone()),
-        None => Err(state.susp.clone()),
-    };
-    result
-}
-
-#[function_component]
-fn Content() -> HtmlResult {
-    let strs = use_results()?;
-
-    Ok(html! {
-        <div>{"res: "}{strs}</div>
-    })
-}
-
-#[function_component]
-pub fn App() -> Html {
-    let fallback = html! {<div>{"Loading..."}</div>};
-
-    html! {
-        <Suspense {fallback}>
-            <Content />
-        </Suspense>
-    }
-}
 
 async fn render() -> Result<impl warp::Reply, Infallible> {
     let content = tokio::task::spawn_blocking(move || {
@@ -58,17 +28,20 @@ async fn render() -> Result<impl warp::Reply, Infallible> {
     Ok(
         warp::reply::html(
             format!(
-                r#"<!DOCTYPE HTML>
-                    <html>
-                        <head>
-                            <title>comparo-cyclo</title>
-                        </head>
-                        <body>
-                            <h1>comparo-cyclo</h1>
-                            {}
-                        </body>
-                    </html>
-                "#,
+                r#"<!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <title>Dusty study</title>
+                    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+                    <script src="https://kit.fontawesome.com/ee3fa7d08f.js" crossorigin="anonymous"></script>
+                </head>
+                <body>
+                    <h1>comparo-cyclo</h1>
+                    {}
+                </body>
+                </html>"#,
                 content
             )
         )
@@ -78,6 +51,7 @@ async fn render() -> Result<impl warp::Reply, Infallible> {
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> () {
     let routes = warp::path::end().and_then(|| render());
+    println!("running at localhost:3030");
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3030))
         .await;

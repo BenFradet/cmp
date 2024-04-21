@@ -16,3 +16,4 @@ urlencoding = "2.1.3"
 yew = { git = "https://github.com/yewstack/yew/", features = ["csr", "ssr"] }
 tokio = { version = "1.37.0", features = ["full"] }
 warp = "0.3.7"
+web-sys = "0.3.69"
