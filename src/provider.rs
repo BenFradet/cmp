@@ -62,6 +62,11 @@ impl<'a> Provider<'a> {
             .ok_or(anyhow::anyhow!("selector not found"))
     }
 
+    fn search_url(&self, search_term: &str) -> String {
+        let encoded_search_term = urlencoding::encode(search_term).into_owned();
+        [self.top_level_domain, self.search_prefix, &encoded_search_term].concat()
+    }
+
     async fn direct_search<T>(
         client: &Client,
         url: T,
@@ -92,10 +97,5 @@ impl<'a> Provider<'a> {
 
     fn bypass_req_body(url: &str) -> String {
         serde_json::json!({"cmd": "request.get", "url": url, "maxTimeout": 60000}).to_string()
-    }
-
-    fn search_url(&self, search_term: &str) -> String {
-        let encoded_search_term = urlencoding::encode(search_term).into_owned();
-        [self.top_level_domain, self.search_prefix, &encoded_search_term].concat()
     }
 }
