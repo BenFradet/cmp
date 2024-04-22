@@ -6,6 +6,7 @@ use warp::Filter;
 use crate::app::App;
 
 mod app;
+mod hooks;
 mod provider;
 mod state;
 
@@ -33,7 +34,7 @@ async fn render() -> Result<impl warp::Reply, Infallible> {
                 <head>
                     <meta charset="utf-8" />
                     <meta name="viewport" content="width=device-width, initial-scale=1">
-                    <title>Dusty study</title>
+                    <title>Comparo-Cyclo</title>
                     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
                     <script src="https://kit.fontawesome.com/ee3fa7d08f.js" crossorigin="anonymous"></script>
                 </head>

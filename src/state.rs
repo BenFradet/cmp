@@ -7,7 +7,7 @@ use yew::suspense::Suspension;
 
 use crate::provider::Provider;
 
-const PARALLEL_REQUESTS: usize = 2;
+const PARALLEL_REQUESTS: usize = 3;
 
 pub struct State {
     pub susp: Suspension,
@@ -15,15 +15,17 @@ pub struct State {
 }
 
 impl State {
-    pub fn new() -> Self {
+    pub fn new(search: &str) -> Self {
         let (susp, handle) = Suspension::new();
         let value: Rc<RefCell<Option<Vec<String>>>> = Rc::default();
 
         {
             let value = value.clone();
+            // we need to own to spawn local
+            let s = search.to_owned();
             // we use tokio spawn local here.
             spawn_local(async move {
-                let res = Self::fetch();
+                let res = Self::fetch(&s);
                 {
                     let mut value = value.borrow_mut();
                     *value = Some(res.await);
@@ -36,10 +38,9 @@ impl State {
         Self { susp, value }
     }
 
-    async fn fetch() -> Vec<String> {
+    // we need an owned string because we're sending it to other threads
+    async fn fetch(search: &str) -> Vec<String> {
         let client = Client::new();
-
-        let search = "Selle italia slr boost endurance";
 
         let providers = vec![Provider::BIKE_DISCOUNT, Provider::ALLTRICKS, Provider::STARBIKE];
         let providers_len = providers.len();
@@ -48,8 +49,10 @@ impl State {
             .map(|p| {
                 // should be safe to clone since backed by an rc (to check)
                 let client = client.clone();
+                // corouting moves
+                let s = search.to_owned();
                 tokio::spawn(async move {
-                    p.crawl(&client, &search).await.unwrap_or("not found".to_owned())
+                    p.crawl(&client, &s).await.unwrap_or("not found".to_owned())
                 })
             })
             .buffer_unordered(PARALLEL_REQUESTS)
