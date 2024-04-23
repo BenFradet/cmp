@@ -1,6 +1,6 @@
 use futures::{stream, StreamExt};
 use reqwest::Client;
-use web_sys::console;
+use web_sys::{console, HtmlInputElement};
 use yew::prelude::*;
 
 use crate::{components::input::Input, domain::provider::Provider};
@@ -11,6 +11,7 @@ pub struct ContentProp {
 }
 
 const PARALLEL_REQUESTS: usize = 3;
+const INITIAL_SEARCH_TERM: &'static str = "Selle italia slr boost endurance";
 
 #[cfg(feature = "ssr")]
 pub async fn fetch(search_term: &str) -> Vec<String> {
@@ -49,8 +50,7 @@ pub async fn fetch(search_term: &str) -> Vec<String> {
 
 #[function_component(Content)]
 fn content(prop: &ContentProp) -> HtmlResult {
-    let search_term = prop.input.clone();
-    let strs = use_prepared_state!((), async move |_| -> Vec<String> { fetch(&search_term).await })?.unwrap();
+    let strs = use_prepared_state!((), async move |_| -> Vec<String> { fetch(INITIAL_SEARCH_TERM).await })?.unwrap();
 
     Ok(html! {
         { for strs.iter().map(|s|
@@ -59,18 +59,31 @@ fn content(prop: &ContentProp) -> HtmlResult {
     })
 }
 
+#[function_component]
+fn Button() -> Html {
+    let counter = use_state(|| 0);
+    let onclick = {
+        let counter = counter.clone();
+        Callback::from(move |_| counter.set(*counter + 1))
+    };
+    let value = *counter;
+    html! {
+        <button {onclick}>{format!("Clicked {value} times!")}</button>
+    }
+}
+
 #[function_component(App)]
 pub fn app() -> Html {
     let fallback = html! {<div>{"Loading..."}</div>};
 
-    let input = use_state(|| "".to_string());
+    let input = use_state_eq(|| "".to_string());
 
     let on_search = {
         let input = input.clone();
-        move |s| {
+        Callback::from(move |s| {
             console::log_1(&format!("setting state: {}", s).into());
             input.set(s);
-        }
+        })
     };
 
     html! {
@@ -81,6 +94,7 @@ pub fn app() -> Html {
                 <Suspense {fallback}>
                     <Content input={(*input).clone()} />
                 </Suspense>
+                <Button />
             </div>
         </section>
     }

@@ -33,6 +33,7 @@ wasm-logger = "0.2"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.37.0", features = ["full"] }
 warp = "0.3.7"
+clap = { version = "4", features = ["derive"] }
 
 [features]
 hydration = ["yew/hydration"]

@@ -2,11 +2,19 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use bytes::Bytes;
+use clap::Parser;
 use futures::stream::{self, Stream, StreamExt};
 use cmp::app::App;
 use warp::Filter;
 
 type BoxedError = Box<dyn Error + Send + Sync + 'static>;
+
+#[derive(Parser, Debug)]
+struct Opt {
+    /// the "dist" created by trunk directory to be served for hydration.
+    #[clap(short, long)]
+    dir: PathBuf,
+}
 
 async fn render(
     index_html_before: String,
@@ -24,7 +32,9 @@ async fn render(
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> () {
-    let index_html_s = tokio::fs::read_to_string("index.html")
+    let opts = Opt::parse();
+
+    let index_html_s = tokio::fs::read_to_string(opts.dir.join("index.html"))
         .await
         .expect("failed to read index.html");
 
@@ -40,7 +50,7 @@ async fn main() -> () {
         async move { warp::reply::html(render(index_html_before, index_html_after).await) }
     });
 
-    let routes = html.or(warp::fs::dir("."));
+    let routes = html.or(warp::fs::dir(opts.dir));
 
     println!("You can view the website at: http://localhost:8080/");
     warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;

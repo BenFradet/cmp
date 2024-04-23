@@ -12,7 +12,7 @@ pub fn input(props: &InputProps) -> Html {
     let onkeypress = {
         let ontrigger = props.on_search.clone();
 
-        move |e: KeyboardEvent| {
+        Callback::from(move |e: KeyboardEvent| {
             if e.key() == "Enter" {
                 console::log_1(&"enter".into());
                 let input: HtmlInputElement = e.target_unchecked_into();
@@ -22,13 +22,13 @@ pub fn input(props: &InputProps) -> Html {
                 input.set_value("");
                 ontrigger.emit(value);
             }
-        }
+        })
     };
 
     let onclick = {
         let ontrigger = props.on_search.clone();
 
-        move |e: MouseEvent| {
+        Callback::from(move |e: MouseEvent| {
             console::log_1(&"btn click".into());
             let input: HtmlInputElement = e.target_unchecked_into();
             let value = input.value();
@@ -36,7 +36,7 @@ pub fn input(props: &InputProps) -> Html {
 
             input.set_value("");
             ontrigger.emit(value);
-        }
+        })
     };
 
     html! {
@@ -48,7 +48,7 @@ pub fn input(props: &InputProps) -> Html {
                 </span>
             </div>
             <div class="control">
-                <a class="button is-info is-large"><button class="button is-primary" {onclick}>{"Search"}</button></a>
+                <a class="button is-info is-large is-primary"><button {onclick}>{"Search"}</button></a>
             </div>
         </div>
     }
