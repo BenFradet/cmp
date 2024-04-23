@@ -1,4 +1,4 @@
-use web_sys::HtmlInputElement;
+use web_sys::{console, HtmlInputElement};
 use yew::events::KeyboardEvent;
 use yew::prelude::*;
 
@@ -14,10 +14,10 @@ pub fn input(props: &InputProps) -> Html {
 
         move |e: KeyboardEvent| {
             if e.key() == "Enter" {
-                println!("enter");
+                console::log_1(&"enter".into());
                 let input: HtmlInputElement = e.target_unchecked_into();
                 let value = input.value();
-                println!("value: {value}");
+                console::log_1(&format!("value: {}", value).into());
 
                 input.set_value("");
                 ontrigger.emit(value);
@@ -29,10 +29,10 @@ pub fn input(props: &InputProps) -> Html {
         let ontrigger = props.on_search.clone();
 
         move |e: MouseEvent| {
-            println!("btn click");
+            console::log_1(&"btn click".into());
             let input: HtmlInputElement = e.target_unchecked_into();
             let value = input.value();
-            println!("value: {value}");
+            console::log_1(&format!("value: {}", value).into());
 
             input.set_value("");
             ontrigger.emit(value);
