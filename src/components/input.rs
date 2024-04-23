@@ -4,18 +4,20 @@ use yew::prelude::*;
 
 #[derive(PartialEq, Properties, Clone)]
 pub struct InputProps {
-    pub ontrigger: Callback<String>,
+    pub on_search: Callback<String>,
 }
 
 #[function_component(Input)]
 pub fn input(props: &InputProps) -> Html {
     let onkeypress = {
-        let ontrigger = props.ontrigger.clone();
+        let ontrigger = props.on_search.clone();
 
         move |e: KeyboardEvent| {
             if e.key() == "Enter" {
+                println!("enter");
                 let input: HtmlInputElement = e.target_unchecked_into();
                 let value = input.value();
+                println!("value: {value}");
 
                 input.set_value("");
                 ontrigger.emit(value);
@@ -24,11 +26,13 @@ pub fn input(props: &InputProps) -> Html {
     };
 
     let onclick = {
-        let ontrigger = props.ontrigger.clone();
+        let ontrigger = props.on_search.clone();
 
         move |e: MouseEvent| {
+            println!("btn click");
             let input: HtmlInputElement = e.target_unchecked_into();
             let value = input.value();
+            println!("value: {value}");
 
             input.set_value("");
             ontrigger.emit(value);
@@ -44,7 +48,7 @@ pub fn input(props: &InputProps) -> Html {
                 </span>
             </div>
             <div class="control">
-                <a class="button is-info is-large"><button class="button is-primary" onclick={onclick}>{"Search"}</button></a>
+                <a class="button is-info is-large"><button class="button is-primary" {onclick}>{"Search"}</button></a>
             </div>
         </div>
     }

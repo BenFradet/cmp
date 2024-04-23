@@ -7,9 +7,9 @@ use crate::app::App;
 
 mod app;
 mod components;
+mod domain;
 mod hooks;
 mod provider;
-mod state;
 
 async fn render() -> Result<impl warp::Reply, Infallible> {
     let content = tokio::task::spawn_blocking(move || {
