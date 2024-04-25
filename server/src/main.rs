@@ -22,9 +22,7 @@ async fn main() -> () {
         .and(extract_q())
         .and_then(|search_term: String| search(search_term));
 
-    let hi = warp::path("hi").map(|| "Hello, World!");
-
-    let routes = search.or(hi).recover(error::handle_rejection);
+    let routes = search.recover(error::handle_rejection);
     println!("running at localhost:3030");
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }

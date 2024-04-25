@@ -230,7 +230,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
 
 [[package]]
-name = "cmp-client"
+name = "cmp-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures",
+ "html-escape",
+ "reqwest",
+ "scraper",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "tokio",
+ "urlencoding",
+ "warp",
+]
+
+[[package]]
+name = "cmp-ssr"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -249,23 +266,6 @@ dependencies = [
  "wasm-logger",
  "web-sys",
  "yew",
-]
-
-[[package]]
-name = "cmp-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "futures",
- "html-escape",
- "reqwest",
- "scraper",
- "serde",
- "serde_derive",
- "serde_json",
- "tokio",
- "urlencoding",
- "warp",
 ]
 
 [[package]]
