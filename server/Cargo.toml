@@ -1,9 +1,10 @@
 [package]
-name = "cmp-server"
+name = "server"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+domain = { path = "../domain" }
 anyhow = "1.0.82"
 futures = "0.3.30"
 html-escape = "0.2.13"
