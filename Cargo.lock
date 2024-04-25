@@ -236,7 +236,9 @@ dependencies = [
  "anyhow",
  "bytes",
  "clap",
+ "domain",
  "futures",
+ "gloo 0.10.0",
  "html-escape",
  "log",
  "reqwest",
@@ -356,8 +358,14 @@ dependencies = [
 name = "domain"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "html-escape",
+ "reqwest",
+ "scraper",
  "serde",
  "serde_derive",
+ "serde_json",
+ "urlencoding",
 ]
 
 [[package]]

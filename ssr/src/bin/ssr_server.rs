@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use bytes::Bytes;
 use clap::Parser;
 use futures::stream::{self, Stream, StreamExt};
-use cmp::app::App;
+use cmp_ssr::app::App;
 use warp::Filter;
 
 type BoxedError = Box<dyn Error + Send + Sync + 'static>;

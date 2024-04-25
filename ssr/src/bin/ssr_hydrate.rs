@@ -1,4 +1,4 @@
-use cmp::app::App;
+use cmp_ssr::app::App;
 
 fn main() {
     #[cfg(target_arch = "wasm32")]

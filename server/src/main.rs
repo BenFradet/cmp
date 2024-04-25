@@ -1,14 +1,12 @@
 use std::{collections::HashMap, convert::Infallible};
 
-use domain::response::Response;
+use domain::{provider::Provider, response::Response};
 use error::MissingQueryParam;
 use futures::stream::{self, StreamExt};
-use provider::Provider;
 use reqwest::Client;
 use warp::{reject::{self, Rejection}, reply::Reply, Filter};
 
 pub mod error;
-pub mod provider;
 
 const PARALLEL_REQUESTS: usize = 3;
 const QUERY_PARAM: &'static str = "q";

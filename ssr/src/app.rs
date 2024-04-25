@@ -1,9 +1,13 @@
+use domain::provider::Provider;
+use domain::response::Response;
 use futures::{stream, StreamExt};
+use gloo::net::http::Request;
 use reqwest::Client;
 use web_sys::{console, HtmlInputElement};
 use yew::prelude::*;
+use yew::suspense::use_future;
 
-use crate::{components::input::Input, domain::provider::Provider};
+use crate::components::input::Input;
 
 #[derive(Properties, PartialEq)]
 pub struct ContentProp {
@@ -48,8 +52,8 @@ pub async fn fetch(search_term: &str) -> Vec<String> {
         .collect()
 }
 
-#[function_component(Content)]
-fn content(prop: &ContentProp) -> HtmlResult {
+#[function_component(ListingServerInner)]
+fn listing_server_inner() -> HtmlResult {
     let strs = use_prepared_state!((), async move |_| -> Vec<String> { fetch(INITIAL_SEARCH_TERM).await })?.unwrap();
 
     Ok(html! {
@@ -57,6 +61,53 @@ fn content(prop: &ContentProp) -> HtmlResult {
             html!{<div>{"res: "}{s}</div>}
         )}
     })
+}
+
+#[function_component(ListingServer)]
+fn listing_server() -> Html {
+    let fallback = html!({ "loading..." });
+    html!(
+        <Suspense {fallback}>
+            <ListingServerInner />
+        </Suspense>
+    )
+}
+
+#[function_component(ListingClientInner)]
+fn listing_client_inner(prop: &ContentProp) -> HtmlResult {
+    #[cfg(not(feature = "ssr"))]
+    {
+        let q = urlencoding::encode(&prop.input);
+        let url = format!("http://localhost:3030/api/v1/search?q={q}");
+        let res = use_future(|| async move {
+            Request::get(&url)
+                .send()
+                .await?
+                .json::<Response>()
+                .await
+        })?;
+        let result_html = match *res {
+            Ok(ref res) => html! { format!("{:?}", res) },
+            Err(ref failure) => failure.to_string().into(),
+        };
+        Ok(result_html)
+    }
+
+    #[cfg(feature = "ssr")]
+    {
+        Ok(html!("server-side rendered"))
+    }
+}
+
+#[function_component(ListingClient)]
+fn listing_client(prop: &ContentProp) -> Html {
+    let fallback = html!({ "loading..." });
+    // find a way to pass down props
+    html!(
+        <Suspense {fallback}>
+            <ListingClientInner input={prop.input.clone()} />
+        </Suspense>
+    )
 }
 
 #[function_component]
@@ -74,8 +125,6 @@ fn Button() -> Html {
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let fallback = html! {<div>{"Loading..."}</div>};
-
     let input = use_state_eq(|| "".to_string());
 
     let on_search = {
@@ -91,9 +140,8 @@ pub fn app() -> Html {
             <div class="container">
                 <Input {on_search} />
                 <h1>{(*input).clone()}</h1>
-                <Suspense {fallback}>
-                    <Content input={(*input).clone()} />
-                </Suspense>
+                <ListingServer />
+                <ListingClient input={(*input).clone()} />
                 <Button />
             </div>
         </section>

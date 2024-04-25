@@ -1,6 +1,6 @@
-use serde_derive::Serialize;
+use serde_derive::{Deserialize, Serialize};
 
-#[derive(Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Response {
     pub results: Vec<String>,
 }
