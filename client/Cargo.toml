@@ -1,0 +1,11 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+domain = { path = "../domain" }
+yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }
+gloo = "0.10.0"
+web-sys = "0.3.69"
+urlencoding = "2.1.3"

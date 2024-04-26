@@ -46,6 +46,7 @@ impl Provider {
         client: &Client,
         url: T,
     ) -> anyhow::Result<String> where T: IntoUrl {
+        // todo cache and reuse the cookie which is sent back
         let text = if self.bypass_cloudflare {
             Self::bypass_search(client, url).await?
         } else {
