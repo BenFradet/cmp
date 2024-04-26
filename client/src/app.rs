@@ -8,17 +8,22 @@ use crate::components::input::Input;
 
 #[derive(Properties, PartialEq)]
 pub struct ContentProp {
-    pub input: String,
+    pub input: Option<AttrValue>,
 }
 
 const INITIAL_SEARCH_TERM: &'static str = "Selle italia slr boost endurance";
 
-#[function_component(ListingClientInner)]
-fn listing_client_inner(prop: &ContentProp) -> HtmlResult {
-    let q = urlencoding::encode(&prop.input);
-    let url = format!("http://localhost:3030/api/v1/search?q={q}");
+#[function_component(ListingInner)]
+fn listing_inner(prop: &ContentProp) -> HtmlResult {
+    let input = prop.input.clone();
+    let q = input.unwrap_or(AttrValue::Static(INITIAL_SEARCH_TERM)).clone();
+    let encoded_q = urlencoding::encode(&q);
+    let url = format!("/api/v1/search?q={encoded_q}");
     let res = use_future(|| async move {
+        console::log_1(&format!("sending request to url: {url}").into());
+        // investigate cache
         Request::get(&url)
+            //.mode(web_sys::RequestMode::Cors)
             .send()
             .await?
             .json::<Response>()
@@ -31,13 +36,13 @@ fn listing_client_inner(prop: &ContentProp) -> HtmlResult {
     Ok(result_html)
 }
 
-#[function_component(ListingClient)]
-fn listing_client(prop: &ContentProp) -> Html {
+#[function_component(Listing)]
+fn listing(prop: &ContentProp) -> Html {
     let fallback = html!({ "loading..." });
     // find a way to pass down props
     html!(
         <Suspense {fallback}>
-            <ListingClientInner input={prop.input.clone()} />
+            <ListingInner input={prop.input.clone()} />
         </Suspense>
     )
 }
@@ -57,12 +62,12 @@ fn Button() -> Html {
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let input = use_state_eq(|| "".to_string());
+    let input = use_state_eq(|| Option::<String>::None);
 
     let on_search = {
         let input = input.clone();
         Callback::from(move |s| {
-            console::log_1(&format!("setting state: {}", s).into());
+            console::log_1(&format!("setting state: {:?}", s).into());
             input.set(s);
         })
     };
@@ -71,8 +76,7 @@ pub fn app() -> Html {
         <section class="section">
             <div class="container">
                 <Input {on_search} />
-                <h1>{(*input).clone()}</h1>
-                <ListingClient input={(*input).clone()} />
+                <Listing input={(*input).clone()} />
                 <Button />
             </div>
         </section>

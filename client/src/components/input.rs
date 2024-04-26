@@ -4,7 +4,7 @@ use yew::prelude::*;
 
 #[derive(PartialEq, Properties, Clone)]
 pub struct InputProps {
-    pub on_search: Callback<String>,
+    pub on_search: Callback<Option<String>>,
 }
 
 #[function_component(Input)]
@@ -20,7 +20,7 @@ pub fn input(props: &InputProps) -> Html {
                 console::log_1(&format!("value: {}", value).into());
 
                 input.set_value("");
-                ontrigger.emit(value);
+                ontrigger.emit(Some(value));
             }
         })
     };
@@ -35,7 +35,7 @@ pub fn input(props: &InputProps) -> Html {
             console::log_1(&format!("value: {}", value).into());
 
             input.set_value("");
-            ontrigger.emit(value);
+            ontrigger.emit(Some(value));
         })
     };
 

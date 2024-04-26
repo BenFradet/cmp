@@ -15,7 +15,7 @@ curl -v -X GET http://localhost:3030/api/v1/search\?q\=Selle%20italia%20slr%20bo
 
 ```bash
 cd client
-trunk serve
+trunk serve --proxy-backend=http://localhost:3030/api
 ```
 
 #### SSR

@@ -34,7 +34,9 @@ fn extract_q() -> impl Filter<Extract = (String,), Error = Rejection> + Copy {
 }
 
 async fn search(search_term: String) -> Result<impl Reply, Infallible> {
+    println!("received: {search_term}");
     let res = fetch(&search_term).await;
+    println!("results: {:?}", res);
     Ok(warp::reply::json(&Response { results: res }))
 }
 
