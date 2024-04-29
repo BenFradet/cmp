@@ -8,11 +8,12 @@ pub struct EntryProps {
 
 #[function_component(Entry)]
 pub fn entry(props: &EntryProps) -> Html {
-    let Item { name, provider, price, image_link, link, time } = &props.item;
+    let Item { name, provider, price, image_link, link, logo_link, time } = &props.item;
     html! {
         <div class="card">
             <header class="card-header">
-                <p class="card-header-title">{provider}</p>
+                <img src={logo_link.clone()} alt={provider.clone()} />
+                //<p class="card-header-title">{provider}</p>
                 <button class="card-header-icon" aria-label="more options">
                     <span class="icon">
                         <i class="fas fa-angle-down" aria-hidden="true"></i>

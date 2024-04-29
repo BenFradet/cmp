@@ -11,4 +11,5 @@ scraper = "0.19.0"
 serde = "1.0.198"
 serde_derive = "1.0.198"
 serde_json = "1.0.116"
+time = { version = "0.3.36", features = ["formatting"] }
 urlencoding = "2.1.3"
