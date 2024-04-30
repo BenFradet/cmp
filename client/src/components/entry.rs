@@ -3,6 +3,7 @@ use yew::prelude::*;
 
 #[derive(PartialEq, Properties, Clone)]
 pub struct EntryProps {
+    // can't have lifetimes for function components
     pub item: Item,
 }
 

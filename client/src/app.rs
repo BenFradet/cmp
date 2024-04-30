@@ -4,6 +4,7 @@ use web_sys::console;
 use yew::prelude::*;
 use yew::suspense::use_future;
 
+use crate::components::entry::Entry;
 use crate::components::input::Input;
 
 #[derive(Properties, PartialEq)]
@@ -30,8 +31,13 @@ fn listing_inner(prop: &ContentProp) -> HtmlResult {
             .await
     })?;
     let result_html = match *res {
-        Ok(ref res) => html! { format!("{:?}", res) },
-        Err(ref failure) => failure.to_string().into(),
+        Ok(ref res) => res.items.iter().map(|item| html! {
+            <Entry item={item.clone()} />
+        }).collect::<Html>(),
+        Err(ref failure) => {
+            console::log_1(&format!("failure to receive response: {failure}").into());
+            failure.to_string().into()
+        },
     };
     Ok(result_html)
 }

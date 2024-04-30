@@ -1,6 +1,6 @@
 use std::{collections::HashMap, convert::Infallible};
 
-use domain::{provider::Provider, response::Response};
+use domain::{item::Item, provider::Provider, response::Response};
 use error::MissingQueryParam;
 use futures::stream::{self, StreamExt};
 use reqwest::Client;
@@ -10,6 +10,7 @@ pub mod error;
 
 const PARALLEL_REQUESTS: usize = 3;
 const QUERY_PARAM: &'static str = "q";
+const DATE_FORMAT_STR: &'static str = "[year]-[month]-[day]-[hour]:[minute]:[second]";
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> () {
@@ -37,14 +38,16 @@ async fn search(search_term: String) -> Result<impl Reply, Infallible> {
     println!("received: {search_term}");
     let res = fetch(&search_term).await;
     println!("results: {:?}", res);
-    Ok(warp::reply::json(&Response { results: res }))
+    Ok(warp::reply::json(&Response { items: res }))
 }
 
-async fn fetch(search_term: &str) -> Vec<String> {
+async fn fetch(search_term: &str) -> Vec<Item> {
     let client = Client::new();
 
     let providers = vec![Provider::BIKE_DISCOUNT, Provider::ALLTRICKS, Provider::STARBIKE];
     let providers_len = providers.len();
+
+    let date_fmt = time::format_description::parse(&DATE_FORMAT_STR).unwrap();
 
     let results = stream::iter(providers)
         .map(|p| {
@@ -52,8 +55,9 @@ async fn fetch(search_term: &str) -> Vec<String> {
             let client = client.clone();
             // corouting moves
             let s = search_term.to_owned();
+            let fmt = date_fmt.clone();
             tokio::spawn(async move {
-                p.crawl(&client, &s).await.unwrap_or("not found".to_owned())
+                p.crawl(&client, &s, fmt).await
             })
         })
         .buffer_unordered(PARALLEL_REQUESTS)
@@ -64,7 +68,11 @@ async fn fetch(search_term: &str) -> Vec<String> {
     results
         .into_iter()
         .map(|r| match r {
-            Ok(s) => Some(s),
+            Ok(Ok(s)) => Some(s),
+            Ok(Err(e)) => {
+                println!("crawl error: {e}");
+                None
+            },
             Err(e) => {
                 println!("join error: {e}");
                 None

@@ -1,12 +1,11 @@
 use reqwest::{header::HeaderValue, Client, IntoUrl};
 use scraper::{ElementRef, Html, Selector};
 use serde_json::Value;
-use time::{format_description, OffsetDateTime};
+use time::{formatting::Formattable, OffsetDateTime};
 
 use crate::item::Item;
 
 const FLARE_SOLVER: &'static str = "http://localhost:8191/v1";
-const DATE_FORMAT_STR: &'static str = "[year]-[month]-[day]-[hour]:[minute]:[second]";
 
 pub struct Provider {
     name: &'static str,
@@ -60,16 +59,22 @@ impl Provider {
             bypass_cloudflare: false,
         };
 
-    pub async fn crawl(&self, client: &Client, search_term: &str) -> anyhow::Result<String> {
+    pub async fn crawl<F>(
+        &self,
+        client: &Client,
+        search_term: &str,
+        date_format: F,
+    ) -> anyhow::Result<Item> where F: Formattable + Sized {
         let search_url = self.search_url(search_term);
-        self.search(client, search_url).await
+        self.search(client, search_url, date_format).await
     }
 
-    async fn search<T>(
+    async fn search<T, F>(
         &self,
         client: &Client,
         url: T,
-    ) -> anyhow::Result<String> where T: IntoUrl {
+        date_format: F,
+    ) -> anyhow::Result<Item> where T: IntoUrl, F: Formattable + Sized {
         // todo cache and reuse the cookie which is sent back
         let text = if self.bypass_cloudflare {
             Self::bypass_search(client, url).await?
@@ -87,26 +92,16 @@ impl Provider {
         let name = Self::select(&document, &self.name_selector, inner_html_f)?;
         let link = Self::select(&document, &self.link_selector, href_f)?;
 
-        let fmt = format_description::parse(DATE_FORMAT_STR)?;
-        let dt = OffsetDateTime::now_utc().format(&fmt)?;
-        Item {
+        let dt = OffsetDateTime::now_utc().format(&date_format)?;
+        Ok(Item {
             name: name,
-            provider: self.name,
+            provider: self.name.to_owned(),
             price: price,
             image_link: image_link,
             link: link,
-            logo_link: self.logo_link,
+            logo_link: self.logo_link.to_owned(),
             time: dt,
-        };
-
-        let selector = Selector::parse(&self.price_selector)
-            // no send for errors
-            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
-        document
-            .select(&selector)
-            .next()
-            .map(|er| html_escape::decode_html_entities(&er.inner_html()).trim().to_string())
-            .ok_or(anyhow::anyhow!("selector not found"))
+        })
     }
 
     fn select(

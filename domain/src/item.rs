@@ -1,10 +1,13 @@
-#[derive(Clone, Debug, PartialEq, Eq)]
+use serde_derive::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+// can't have lifetimes for function components
 pub struct Item {
     pub name: String,
-    pub provider: &'static str,
+    pub provider: String,
     pub price: String,
     pub image_link: String,
     pub link: String,
-    pub logo_link: &'static str,
+    pub logo_link: String,
     pub time: String,
 }
