@@ -24,16 +24,16 @@ fn listing_inner(prop: &ContentProp) -> HtmlResult {
         console::log_1(&format!("sending request to url: {url}").into());
         // investigate cache
         Request::get(&url)
-            //.mode(web_sys::RequestMode::Cors)
             .send()
             .await?
             .json::<Response>()
             .await
     })?;
     let result_html = match *res {
-        Ok(ref res) => res.items.iter().map(|item| html! {
-            <Entry item={item.clone()} />
-        }).collect::<Html>(),
+        Ok(ref res) =>
+            res.items.iter().map(|item| html! {
+                <Entry item={item.clone()} />
+            }).collect::<Html>(),
         Err(ref failure) => {
             console::log_1(&format!("failure to receive response: {failure}").into());
             failure.to_string().into()
@@ -44,26 +44,25 @@ fn listing_inner(prop: &ContentProp) -> HtmlResult {
 
 #[function_component(Listing)]
 fn listing(prop: &ContentProp) -> Html {
-    let fallback = html!({ "loading..." });
+    // replace by bulma progress bar
+    let fallback = html! {
+        <div class="container">
+            <section class="hero">
+                <div class="hero-body">
+                    <p class="title">{"Loading..."}</p>
+                    <progress class="progress is-large is-info" max="100">{"60%"}</progress>
+                </div>
+            </section>
+        </div>
+    };
     // find a way to pass down props
     html!(
         <Suspense {fallback}>
-            <ListingInner input={prop.input.clone()} />
+            <div class="columns is-multiline is-mobile">
+                <ListingInner input={prop.input.clone()} />
+            </div>
         </Suspense>
     )
-}
-
-#[function_component]
-fn Button() -> Html {
-    let counter = use_state(|| 0);
-    let onclick = {
-        let counter = counter.clone();
-        Callback::from(move |_| counter.set(*counter + 1))
-    };
-    let value = *counter;
-    html! {
-        <button {onclick}>{format!("Clicked {value} times!")}</button>
-    }
 }
 
 #[function_component(App)]
@@ -83,7 +82,6 @@ pub fn app() -> Html {
             <div class="container">
                 <Input {on_search} />
                 <Listing input={(*input).clone()} />
-                <Button />
             </div>
         </section>
     }
