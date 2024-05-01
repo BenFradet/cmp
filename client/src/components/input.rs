@@ -25,12 +25,15 @@ pub fn input(props: &InputProps) -> Html {
         })
     };
 
+    let input_ref = use_node_ref();
+
     let onclick = {
         let ontrigger = props.on_search.clone();
+        let ir = input_ref.clone();
 
-        Callback::from(move |e: MouseEvent| {
+        Callback::from(move |_: MouseEvent| {
             console::log_1(&"btn click".into());
-            let input: HtmlInputElement = e.target_unchecked_into();
+            let input: HtmlInputElement = ir.cast::<HtmlInputElement>().unwrap();
             let value = input.value();
             console::log_1(&format!("value: {}", value).into());
 
@@ -42,7 +45,7 @@ pub fn input(props: &InputProps) -> Html {
     html! {
         <div class="field has-addons">
             <div class="control has-icons-left has-icons-right is-expanded">
-                <input type="text" class="input is-info is-large" placeholder="Selle italia slr boost endurance" {onkeypress} />
+                <input ref={input_ref} type="text" class="input is-info is-large" placeholder="Selle italia slr boost endurance" {onkeypress} />
                 <span class="icon is-left">
                     <i class="fas fa-magnifying-glass"></i>
                 </span>
