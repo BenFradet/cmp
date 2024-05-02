@@ -29,7 +29,7 @@ pub fn entry(props: &EntryProps) -> Html {
                 </div>
                 <div class="card-content">
                     <div class="content">
-                        <span class="heading has-text-grey">{name}</span>
+                        <span class="heading has-text-grey title is-6">{name}</span>
                         <span class="heading has-text-grey">{format!("Price on {}:", provider)}</span>
                         <h3 class="mt-2 mb-0">{price}</h3>
                         <time class="heading has-text-grey">{time}</time>

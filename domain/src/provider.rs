@@ -7,6 +7,7 @@ use crate::item::Item;
 
 const FLARE_SOLVER: &'static str = "http://localhost:8191/v1";
 
+#[derive(Eq, PartialEq)]
 pub struct Provider {
     name: &'static str,
     top_level_domain: &'static str,
@@ -38,11 +39,11 @@ impl Provider {
             name: "Bike-Discount",
             top_level_domain: "https://www.bike-discount.de/en",
             search_prefix: "/search?sSearch=",
-            name_selector: r#"a.alltricks-Product-description"#,
-            link_selector: r#"a.alltricks-Product-description"#,
+            name_selector: r#"a.product--title > br"#,
+            link_selector: r#"a.product--title"#,
             price_selector: r#"span.price--default.is--nowrap.is--discount"#,
-            image_selector: r#"span.alltricks-Product-picture > img"#,
-            logo_link: "",
+            image_selector: r#"span.image--media > img"#,
+            logo_link: "https://cdn.starbike.com/logo.svg",
             bypass_cloudflare: true,
         };
 
@@ -51,11 +52,11 @@ impl Provider {
             name: "starbike",
             top_level_domain: "https://www.starbike.com/en",
             search_prefix: "/search/?q=",
-            name_selector: r#"a.alltricks-Product-description"#,
-            link_selector: r#"a.alltricks-Product-description"#,
+            name_selector: r#"a.pb-link"#,
+            link_selector: r#"a.pb-link"#,
             price_selector: r#"span.productbox-price"#,
-            image_selector: r#"span.alltricks-Product-picture > img"#,
-            logo_link: "",
+            image_selector: r#"img.pb-link-trigger.product-box.productbox-image"#,
+            logo_link: "https://cdn.starbike.com/logo.svg",
             bypass_cloudflare: false,
         };
 
@@ -84,24 +85,39 @@ impl Provider {
         let document = Html::parse_document(&text);
 
         let inner_html_f = |e: ElementRef| html_escape::decode_html_entities(&e.inner_html()).trim().to_owned();
-        let src_f = |e: ElementRef| e.attr("src").unwrap_or("not found").to_owned();
         let href_f = |e: ElementRef| e.attr("href").unwrap_or("not found").to_owned();
 
         let price = Self::select(&document, &self.price_selector, inner_html_f)?;
-        let image_link = Self::select(&document, &self.image_selector, src_f)?;
+        let image_link = self.img_link(&document)?;
         let name = Self::select(&document, &self.name_selector, inner_html_f)?;
         let link = Self::select(&document, &self.link_selector, href_f)?;
 
         let dt = OffsetDateTime::now_utc().format(&date_format)?;
         Ok(Item {
-            name: name,
+            name,
             provider: self.name.to_owned(),
-            price: price,
-            image_link: image_link,
-            link: link,
+            price,
+            image_link,
+            link,
             logo_link: self.logo_link.to_owned(),
             time: dt,
         })
+    }
+
+    // todo: enum
+    fn img_link(&self, document: &Html) -> anyhow::Result<String> {
+        // todo: closures can only be coerced to `fn` types if they do not capture any variables
+        let f = match *self {
+            Self::ALLTRICKS => |e: ElementRef| e.attr("src").unwrap_or("not found").to_owned(),
+            Self::BIKE_DISCOUNT => |e: ElementRef| e.attr("srcset").and_then(|s| s.split(",").next()).unwrap_or("not found").to_owned(),
+            Self::STARBIKE => |e: ElementRef| e.attr("lazyload").map(|s| {
+                let res = s.replace("%W%", "100").replace("%HW", "100");
+                res
+            }).unwrap_or("not found".to_owned()),
+            _ => |e: ElementRef| "not found".to_owned(),
+        };
+        //let ff = |e: ElementRef, f: impl Fn(ElementRef) -> Option<&str>| f(e).unwrap_or("not found").to_owned();
+        Self::select(document, &self.image_selector, f)
     }
 
     fn select(
