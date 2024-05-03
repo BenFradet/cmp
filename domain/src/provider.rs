@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use reqwest::{header::HeaderValue, Client, IntoUrl};
 use scraper::{ElementRef, Html, Selector};
 use serde_json::Value;
@@ -39,7 +41,7 @@ impl Provider {
             name: "Bike-Discount",
             top_level_domain: "https://www.bike-discount.de",
             search_prefix: "/en/search?sSearch=",
-            name_selector: r#"a.product--title > br"#,
+            name_selector: r#"a.product--title"#,
             link_selector: r#"a.product--title"#,
             price_selector: r#"span.price--default.is--nowrap.is--discount"#,
             image_selector: r#"span.image--media > img"#,
@@ -84,11 +86,13 @@ impl Provider {
         };
         let document = Html::parse_document(&text);
 
-        let inner_html_f = |e: ElementRef| html_escape::decode_html_entities(&e.inner_html()).trim().to_owned();
+        let inner_html_f = |e: ElementRef| html_escape::decode_html_entities(&e.inner_html())
+            .trim()
+            .to_owned();
 
-        let price = Self::select(&document, &self.price_selector, inner_html_f)?;
+        let price = self.price(&document, inner_html_f)?;
         let image_link = self.img_link(&document)?;
-        let name = Self::select(&document, &self.name_selector, inner_html_f)?;
+        let name = self.name(&document, inner_html_f)?;
         let product_link = self.product_link(&document)?;
 
         let dt = OffsetDateTime::now_utc().format(&date_format)?;
@@ -101,6 +105,28 @@ impl Provider {
             logo_link: self.logo_link.to_owned(),
             time: dt,
         })
+    }
+
+    fn name(&self, document: &Html, inner_html_f: fn(ElementRef) -> String) -> anyhow::Result<String> {
+        let f = move |e: ElementRef| inner_html_f(e)
+            .split("<br>")
+            .last()
+            .unwrap_or("not_found")
+            .to_owned();
+        Self::select(&document, &self.name_selector, f)
+    }
+
+    fn price(&self, document: &Html, inner_html_f: fn(ElementRef) -> String) -> anyhow::Result<Option<f64>> {
+        let f = move |e: ElementRef| {
+            inner_html_f(e)
+                .replace("€", "")
+                // parser is mega finicky
+                .replace(",", ".")
+                .trim()
+                .parse::<f64>()
+                .ok()
+        };
+        Self::select(&document, &self.price_selector, f)
     }
 
     fn product_link(&self, document: &Html) -> anyhow::Result<String> {
@@ -127,11 +153,11 @@ impl Provider {
         Self::select(document, &self.image_selector, f)
     }
 
-    fn select<S: Fn(ElementRef) -> String>(
+    fn select<A, S: Fn(ElementRef) -> A>(
         document: &Html,
         selector: &str,
         f: S
-    ) -> anyhow::Result<String> {
+    ) -> anyhow::Result<A> {
         let selector = Selector::parse(selector)
             // no send for errors
             .map_err(|e| anyhow::anyhow!(e.to_string()))?;

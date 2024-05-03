@@ -31,7 +31,7 @@ pub fn entry(props: &EntryProps) -> Html {
                     <div class="content">
                         <span class="heading has-text-grey title is-6">{name}</span>
                         <span class="heading has-text-grey">{format!("Price on {}:", provider)}</span>
-                        <h3 class="mt-2 mb-0">{price}</h3>
+                        <h3 class="mt-2 mb-0">{price.map(|p| format!("{} €", p)).unwrap_or("price unknown".to_owned())}</h3>
                         <time class="heading has-text-grey">{time}</time>
                     </div>
                 </div>
