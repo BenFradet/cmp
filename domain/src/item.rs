@@ -7,7 +7,7 @@ pub struct Item {
     pub provider: String,
     pub price: String,
     pub image_link: String,
-    pub link: String,
+    pub product_link: String,
     pub logo_link: String,
     pub time: String,
 }

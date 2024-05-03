@@ -37,8 +37,8 @@ impl Provider {
     pub const BIKE_DISCOUNT: Provider = 
         Provider {
             name: "Bike-Discount",
-            top_level_domain: "https://www.bike-discount.de/en",
-            search_prefix: "/search?sSearch=",
+            top_level_domain: "https://www.bike-discount.de",
+            search_prefix: "/en/search?sSearch=",
             name_selector: r#"a.product--title > br"#,
             link_selector: r#"a.product--title"#,
             price_selector: r#"span.price--default.is--nowrap.is--discount"#,
@@ -50,12 +50,12 @@ impl Provider {
     pub const STARBIKE: Provider =
         Provider {
             name: "starbike",
-            top_level_domain: "https://www.starbike.com/en",
-            search_prefix: "/search/?q=",
+            top_level_domain: "https://www.starbike.com",
+            search_prefix: "/en/search/?q=",
             name_selector: r#"a.pb-link"#,
             link_selector: r#"a.pb-link"#,
             price_selector: r#"span.productbox-price"#,
-            image_selector: r#"img.pb-link-trigger.product-box.productbox-image"#,
+            image_selector: r#"li.uk-margin-remove-top.uk-position-relative.uk-display-block div.uk-text-center.uk-position-relative > img.pb-link-trigger.product-box.productbox-image"#,
             logo_link: "https://cdn.starbike.com/logo.svg",
             bypass_cloudflare: false,
         };
@@ -85,12 +85,11 @@ impl Provider {
         let document = Html::parse_document(&text);
 
         let inner_html_f = |e: ElementRef| html_escape::decode_html_entities(&e.inner_html()).trim().to_owned();
-        let href_f = |e: ElementRef| e.attr("href").unwrap_or("not found").to_owned();
 
         let price = Self::select(&document, &self.price_selector, inner_html_f)?;
         let image_link = self.img_link(&document)?;
         let name = Self::select(&document, &self.name_selector, inner_html_f)?;
-        let link = Self::select(&document, &self.link_selector, href_f)?;
+        let product_link = self.product_link(&document)?;
 
         let dt = OffsetDateTime::now_utc().format(&date_format)?;
         Ok(Item {
@@ -98,32 +97,40 @@ impl Provider {
             provider: self.name.to_owned(),
             price,
             image_link,
-            link,
+            product_link,
             logo_link: self.logo_link.to_owned(),
             time: dt,
         })
     }
 
-    // todo: enum
-    fn img_link(&self, document: &Html) -> anyhow::Result<String> {
-        // todo: closures can only be coerced to `fn` types if they do not capture any variables
-        let f = match *self {
-            Self::ALLTRICKS => |e: ElementRef| e.attr("src").unwrap_or("not found").to_owned(),
-            Self::BIKE_DISCOUNT => |e: ElementRef| e.attr("srcset").and_then(|s| s.split(",").next()).unwrap_or("not found").to_owned(),
-            Self::STARBIKE => |e: ElementRef| e.attr("lazyload").map(|s| {
-                let res = s.replace("%W%", "100").replace("%HW", "100");
-                res
-            }).unwrap_or("not found".to_owned()),
-            _ => |e: ElementRef| "not found".to_owned(),
+    fn product_link(&self, document: &Html) -> anyhow::Result<String> {
+        let f = move |e: ElementRef| {
+            let res = match *self {
+                Self::BIKE_DISCOUNT => e.attr("href").map(|s| s.to_owned()),
+                _ => e.attr("href").map(|s| [self.top_level_domain, s].concat()),
+            };
+            res.unwrap_or("not_found".to_owned())
         };
-        //let ff = |e: ElementRef, f: impl Fn(ElementRef) -> Option<&str>| f(e).unwrap_or("not found").to_owned();
+        Self::select(&document, &self.link_selector, f)
+    }
+
+    fn img_link(&self, document: &Html) -> anyhow::Result<String> {
+        let f = move |e: ElementRef| {
+            let res = match *self {
+                Self::ALLTRICKS => e.attr("src").map(|s| s.to_owned()),
+                Self::BIKE_DISCOUNT => e.attr("srcset").and_then(|s| s.split(",").next()).map(|s| s.to_owned()),
+                Self::STARBIKE => e.attr("lazyload").map(|s| s.replace("%W%", "200").replace("%H%", "200")),
+                _ => None,
+            };
+            res.unwrap_or("not found".to_owned())
+        };
         Self::select(document, &self.image_selector, f)
     }
 
-    fn select(
+    fn select<S: Fn(ElementRef) -> String>(
         document: &Html,
         selector: &str,
-        f: fn(ElementRef) -> String,
+        f: S
     ) -> anyhow::Result<String> {
         let selector = Selector::parse(selector)
             // no send for errors

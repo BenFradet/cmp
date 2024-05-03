@@ -9,7 +9,7 @@ pub struct EntryProps {
 
 #[function_component(Entry)]
 pub fn entry(props: &EntryProps) -> Html {
-    let Item { name, provider, price, image_link, link, logo_link, time } = &props.item;
+    let Item { name, provider, price, image_link, product_link, logo_link, time } = &props.item;
     html! {
         <div class="column is-one-third">
             <div class="card">
@@ -36,7 +36,7 @@ pub fn entry(props: &EntryProps) -> Html {
                     </div>
                 </div>
                 <footer class="card-footer">
-                    <a href={link.clone()} class="card-footer-item">{format!("Go to {}!", provider)}</a>
+                    <a href={product_link.clone()} class="card-footer-item">{format!("Buy on {}!", provider)}</a>
                 </footer>
             </div>
         </div>
