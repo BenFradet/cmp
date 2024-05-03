@@ -31,9 +31,16 @@ fn listing_inner(prop: &ContentProp) -> HtmlResult {
     })?;
     let result_html = match *res {
         Ok(ref res) =>
-            res.items.iter().map(|item| html! {
-                <Entry item={item.clone()} />
-            }).collect::<Html>(),
+            if res.items.is_empty() {
+                html! { "not found" }
+            } else {
+                // find a way without clone
+                let mut items = res.items.clone();
+                items.sort_by(|a, b| a.price.partial_cmp(&b.price).unwrap());
+                items.iter().map(|item| html! {
+                    <Entry item={item.clone()} />
+                }).collect::<Html>()
+            },
         Err(ref failure) => {
             console::log_1(&format!("failure to receive response: {failure}").into());
             failure.to_string().into()
