@@ -17,7 +17,7 @@ const INITIAL_SEARCH_TERM: &'static str = "Selle italia slr boost endurance";
 #[function_component(ListingInner)]
 fn listing_inner(prop: &ContentProp) -> HtmlResult {
     let input = prop.input.clone();
-    let q = input.unwrap_or(AttrValue::Static(INITIAL_SEARCH_TERM)).clone();
+    let q = input.unwrap_or(AttrValue::Static(INITIAL_SEARCH_TERM));
     let encoded_q = urlencoding::encode(&q);
     let url = format!("/api/v1/search?q={encoded_q}");
     let res = use_future(|| async move {
@@ -65,6 +65,11 @@ fn listing(prop: &ContentProp) -> Html {
     // find a way to pass down props
     html!(
         <Suspense {fallback}>
+            <section class="hero">
+                <div class="hero-body">
+                    <p class="title">{format!("Results for \"{}\":", prop.input.clone().unwrap_or(AttrValue::Static(INITIAL_SEARCH_TERM)))}</p>
+                </div>
+            </section>
             <div class="columns is-multiline is-mobile">
                 <ListingInner input={prop.input.clone()} />
             </div>
