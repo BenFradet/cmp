@@ -1,77 +1,28 @@
-use domain::response::Response;
-use gloo::net::http::Request;
 use web_sys::console;
 use yew::prelude::*;
-use yew::suspense::use_future;
 
-use crate::components::entry::Entry;
-use crate::components::input::Input;
+use crate::components::{entries::Entries, input::Input, progress_bar::ProgressBar};
 
 #[derive(Properties, PartialEq)]
-pub struct ContentProp {
+pub struct ListingProps {
     pub input: Option<AttrValue>,
 }
 
 const INITIAL_SEARCH_TERM: &'static str = "Selle italia slr boost endurance";
 
-#[function_component(ListingInner)]
-fn listing_inner(prop: &ContentProp) -> HtmlResult {
-    let input = prop.input.clone();
-    let q = input.unwrap_or(AttrValue::Static(INITIAL_SEARCH_TERM));
-    let encoded_q = urlencoding::encode(&q);
-    let url = format!("/api/v1/search?q={encoded_q}");
-    let res = use_future(|| async move {
-        console::log_1(&format!("sending request to url: {url}").into());
-        // investigate cache
-        Request::get(&url)
-            .send()
-            .await?
-            .json::<Response>()
-            .await
-    })?;
-    let result_html = match *res {
-        Ok(ref res) =>
-            if res.items.is_empty() {
-                html! { "not found" }
-            } else {
-                // find a way without clone
-                let mut items = res.items.clone();
-                items.sort_by(|a, b| a.price.partial_cmp(&b.price).unwrap());
-                items.iter().map(|item| html! {
-                    <Entry item={item.clone()} />
-                }).collect::<Html>()
-            },
-        Err(ref failure) => {
-            console::log_1(&format!("failure to receive response: {failure}").into());
-            failure.to_string().into()
-        },
-    };
-    Ok(result_html)
-}
-
 #[function_component(Listing)]
-fn listing(prop: &ContentProp) -> Html {
-    // replace by bulma progress bar
-    let fallback = html! {
-        <div class="container">
-            <section class="hero">
-                <div class="hero-body">
-                    <p class="title">{"Loading..."}</p>
-                    <progress class="progress is-large is-info" max="100">{"60%"}</progress>
-                </div>
-            </section>
-        </div>
-    };
+fn listing(props: &ListingProps) -> Html {
+    let fallback = html! { <ProgressBar /> };
     // find a way to pass down props
     html!(
         <Suspense {fallback}>
             <section class="hero">
                 <div class="hero-body">
-                    <p class="title">{format!("Results for \"{}\":", prop.input.clone().unwrap_or(AttrValue::Static(INITIAL_SEARCH_TERM)))}</p>
+                    <p class="title">{format!("Results for \"{}\":", props.input.clone().unwrap_or(AttrValue::Static(INITIAL_SEARCH_TERM)))}</p>
                 </div>
             </section>
             <div class="columns is-multiline is-mobile">
-                <ListingInner input={prop.input.clone()} />
+                <Entries input={props.input.clone()} />
             </div>
         </Suspense>
     )

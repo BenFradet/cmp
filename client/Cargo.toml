@@ -9,3 +9,5 @@ yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }
 gloo = "0.10.0"
 web-sys = "0.3.69"
 urlencoding = "2.1.3"
+wasm-bindgen-futures = "0.4"
+anyhow = "1.0.82"
