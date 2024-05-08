@@ -7,6 +7,7 @@ use reqwest::Client;
 use warp::{reject::{self, Rejection}, reply::Reply, Filter};
 
 pub mod error;
+pub mod search;
 
 const PARALLEL_REQUESTS: usize = 3;
 const QUERY_PARAM: &'static str = "q";
