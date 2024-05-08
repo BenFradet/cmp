@@ -10,6 +10,7 @@ pub async fn search(search_term: Option<&str>) -> anyhow::Result<Vec<Item>> {
 
     // investigate cache
     Ok(Request::get(&url)
+        .cache(web_sys::RequestCache::ForceCache)
         .send()
         .await?
         .json::<Response>()
