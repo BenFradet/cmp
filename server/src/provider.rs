@@ -1,6 +1,6 @@
 use domain::item::Item;
 use reqwest::{Client, IntoUrl};
-use scraper::{ElementRef, Html, Selector};
+use scraper::{ElementRef, Html};
 use time::{formatting::Formattable, OffsetDateTime};
 
 use crate::{html_select::HtmlSelect, search::Search};

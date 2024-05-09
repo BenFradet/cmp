@@ -11,6 +11,7 @@ pub mod error;
 pub mod html_select;
 pub mod provider;
 pub mod search;
+pub mod solver;
 
 const PARALLEL_REQUESTS: usize = 3;
 const QUERY_PARAM: &'static str = "q";
