@@ -1,12 +1,15 @@
 use std::{collections::HashMap, convert::Infallible};
 
-use domain::{item::Item, provider::Provider, response::Response};
+use domain::{item::Item, response::Response};
 use error::MissingQueryParam;
 use futures::stream::{self, StreamExt};
+use provider::Provider;
 use reqwest::Client;
 use warp::{reject::{self, Rejection}, reply::Reply, Filter};
 
 pub mod error;
+pub mod html_select;
+pub mod provider;
 pub mod search;
 
 const PARALLEL_REQUESTS: usize = 3;

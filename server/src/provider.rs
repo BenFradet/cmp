@@ -1,13 +1,9 @@
-use std::borrow::Cow;
-
-use reqwest::{header::HeaderValue, Client, IntoUrl};
+use domain::item::Item;
+use reqwest::{Client, IntoUrl};
 use scraper::{ElementRef, Html, Selector};
-use serde_json::Value;
 use time::{formatting::Formattable, OffsetDateTime};
 
-use crate::item::Item;
-
-const FLARE_SOLVER: &'static str = "http://localhost:8191/v1";
+use crate::{html_select::HtmlSelect, search::Search};
 
 #[derive(Eq, PartialEq)]
 pub struct Provider {
@@ -79,11 +75,7 @@ impl Provider {
         date_format: F,
     ) -> anyhow::Result<Item> where T: IntoUrl, F: Formattable + Sized {
         // todo cache and reuse the cookie which is sent back
-        let text = if self.bypass_cloudflare {
-            Self::bypass_search(client, url).await?
-        } else {
-            Self::direct_search(client, url).await?
-        };
+        let text = client.search(url, self.bypass_cloudflare).await?;
         let document = Html::parse_document(&text);
 
         let inner_html_f = |e: ElementRef| html_escape::decode_html_entities(&e.inner_html())
@@ -113,7 +105,7 @@ impl Provider {
             .last()
             .unwrap_or("not_found")
             .to_owned();
-        Self::select(&document, &self.name_selector, f)
+        document.html_select(&self.name_selector, f)
     }
 
     fn price(&self, document: &Html, inner_html_f: fn(ElementRef) -> String) -> anyhow::Result<Option<f64>> {
@@ -126,7 +118,7 @@ impl Provider {
                 .parse::<f64>()
                 .ok()
         };
-        Self::select(&document, &self.price_selector, f)
+        document.html_select(&self.price_selector, f)
     }
 
     fn product_link(&self, document: &Html) -> anyhow::Result<String> {
@@ -137,7 +129,7 @@ impl Provider {
             };
             res.unwrap_or("not_found".to_owned())
         };
-        Self::select(&document, &self.link_selector, f)
+        document.html_select(&self.link_selector, f)
     }
 
     fn img_link(&self, document: &Html) -> anyhow::Result<String> {
@@ -150,58 +142,11 @@ impl Provider {
             };
             res.unwrap_or("not found".to_owned())
         };
-        Self::select(document, &self.image_selector, f)
-    }
-
-    fn select<A, S: Fn(ElementRef) -> A>(
-        document: &Html,
-        selector: &str,
-        f: S
-    ) -> anyhow::Result<A> {
-        let selector = Selector::parse(selector)
-            // no send for errors
-            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
-        document
-            .select(&selector)
-            .next()
-            .map(|er| f(er))
-            .ok_or(anyhow::anyhow!("selector not found"))
+        document.html_select(&self.image_selector, f)
     }
 
     fn search_url(&self, search_term: &str) -> String {
         let encoded_search_term = urlencoding::encode(search_term).into_owned();
         [self.top_level_domain, self.search_prefix, &encoded_search_term].concat()
-    }
-
-    async fn direct_search<T>(
-        client: &Client,
-        url: T,
-    ) -> anyhow::Result<String> where T: IntoUrl {
-        let resp = client.get(url).send().await?;
-        resp.text().await
-            .map_err(|e| anyhow::anyhow!(e.to_string()))
-    }
-
-    async fn bypass_search<T>(
-        client: &Client,
-        url: T,
-    ) -> anyhow::Result<String> where T: IntoUrl {
-        let req_body = Self::bypass_req_body(url.as_str());
-        let resp = client
-            .post(FLARE_SOLVER)
-            .body(req_body)
-            .header("Content-Type", HeaderValue::from_static("application/json"))
-            .send()
-            .await?;
-        let text = resp.text().await?;
-        let json: Value = serde_json::from_str(&text)?;
-        json["solution"]["response"]
-            .as_str()
-            .map(|s| s.to_owned())
-            .ok_or(anyhow::anyhow!("solution.response could not be found in json"))
-    }
-
-    fn bypass_req_body(url: &str) -> String {
-        serde_json::json!({"cmd": "request.get", "url": url, "maxTimeout": 60000}).to_string()
     }
 }
