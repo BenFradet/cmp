@@ -4,13 +4,13 @@ use moka::future::Cache;
 use reqwest::{header::HeaderValue, Client, IntoUrl};
 use serde_json::Value;
 
-use super::solution::Solution;
+use super::{solution::CachedSolution, solver_response::SolverResponse};
 
 const FLARE_SOLVER: &'static str = "http://localhost:8191/v1";
 
 pub struct Solver<'a> {
     client: &'a Client,
-    cache: Cache<String, Arc<Solution>, RandomState>,
+    cache: Cache<&'static str, Arc<CachedSolution>, RandomState>,
     session_id: String,
 }
 
@@ -55,12 +55,29 @@ impl<'a> Solver<'a> {
                 .headers(solution.header_map())
                 .send()
                 .await?;
-            resp.text().await
+            resp
+                .text()
+                .await
                 .map_err(|e| anyhow::anyhow!(e.to_string()))
         } else {
+            let body = self.solver_body(url.as_str());
+            let resp = self
+                .client
+                .post(FLARE_SOLVER)
+                .body(body)
+                .header("Content-Type", HeaderValue::from_static("application/json"))
+                .send()
+                .await?;
+            let text = resp.text().await?;
+            let json: SolverResponse = serde_json::from_str(&text)?;
 
+            let solution = json.solution;
+
+            let cached_solution = solution.to_cached();
+            self.cache.insert(provider_name, Arc::new(cached_solution)).await;
+
+            Ok(solution.response)
         }
-        Ok("".to_owned())
     }
 
     fn session_create_body(session_id: Option<String>) -> String {
@@ -68,5 +85,14 @@ impl<'a> Solver<'a> {
             Some(id) => serde_json::json!({"cmd": "sessions.create", "session": id}).to_string(),
             None => serde_json::json!({"cmd": "sessions.create"}).to_string(),
         }
+    }
+
+    fn solver_body(&self, url: &str) -> String {
+        serde_json::json!({
+            "cmd": "request.get", 
+            "url": url, 
+            "maxTimeout": 30000,
+            "session": self.session_id,
+        }).to_string()
     }
 }
