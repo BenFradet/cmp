@@ -1,11 +1,14 @@
-use std::{collections::HashMap, convert::Infallible};
+use std::{collections::HashMap, convert::Infallible, hash::RandomState, sync::Arc, time::Duration};
 
 use domain::{item::Item, response::Response};
 use error::MissingQueryParam;
 use futures::stream::{self, StreamExt};
+use moka::future::Cache;
 use provider::Provider;
 use reqwest::Client;
 use warp::{reject::{self, Rejection}, reply::Reply, Filter};
+
+use crate::solving::solution::CachedSolution;
 
 pub mod error;
 pub mod html_select;
@@ -19,6 +22,13 @@ const DATE_FORMAT_STR: &'static str = "[year]-[month]-[day]-[hour]:[minute]:[sec
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> () {
+
+    let cookie_cache: Cache<&'static str, Arc<CachedSolution>, RandomState> =
+        Cache::builder()
+            .max_capacity(10)
+            .time_to_live(Duration::from_secs(3600 * 24))
+            .build();
+
     let search = warp::get()
         .and(warp::path!("api" / "v1" / "search"))
         .and(extract_q())

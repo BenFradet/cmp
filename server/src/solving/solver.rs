@@ -1,4 +1,4 @@
-use std::{hash::RandomState, sync::Arc, time::Duration};
+use std::{hash::RandomState, sync::Arc};
 
 use moka::future::Cache;
 use reqwest::{header::HeaderValue, Client, IntoUrl};
@@ -8,14 +8,12 @@ use super::{solution::CachedSolution, solver_response::SolverResponse};
 
 const FLARE_SOLVER: &'static str = "http://localhost:8191/v1";
 
-pub struct Solver<'a> {
-    client: &'a Client,
-    cache: Cache<&'static str, Arc<CachedSolution>, RandomState>,
+pub struct Solver {
     session_id: String,
 }
 
-impl<'a> Solver<'a> {
-    pub async fn create(client: &'a Client, session_id: Option<String>) -> anyhow::Result<Self> {
+impl Solver {
+    pub async fn create(client: &Client, session_id: Option<String>) -> anyhow::Result<Self> {
         let body = Self::session_create_body(session_id);
         let resp = client
             .post(FLARE_SOLVER)
@@ -31,29 +29,21 @@ impl<'a> Solver<'a> {
             .map(|s| s.to_owned())
             .ok_or(anyhow::anyhow!("session could not be found in json"))?;
 
-        let cache = Cache::builder()
-            .max_capacity(10)
-            .time_to_live(Duration::from_secs(3600 * 24))
-            .build();
-
-        Ok(Self {
-            client,
-            cache,
-            session_id,
-        })
+        Ok(Self { session_id })
     }
 
     pub async fn solve<T>(
         &self,
+        client: &Client,
+        cache: &Cache<&'static str, Arc<CachedSolution>, RandomState>,
         provider_name: &'static str,
         url: T
     ) -> anyhow::Result<String> where T: IntoUrl {
-        if let Some(solution) = self.cache.get(provider_name).await {
+        if let Some(solution) = cache.get(provider_name).await {
             let headers = solution.header_map();
             println!("{provider_name} found in cache, headers: {:?}", headers);
 
-            let resp = self
-                .client
+            let resp = client
                 .get(url)
                 .headers(headers)
                 .send()
@@ -64,8 +54,7 @@ impl<'a> Solver<'a> {
                 .map_err(|e| anyhow::anyhow!(e.to_string()))
         } else {
             let body = self.solver_body(url.as_str());
-            let resp = self
-                .client
+            let resp = client
                 .post(FLARE_SOLVER)
                 .body(body)
                 .header("Content-Type", HeaderValue::from_static("application/json"))
@@ -78,7 +67,7 @@ impl<'a> Solver<'a> {
 
             let cached_solution = solution.to_cached();
             println!("{provider_name} not found in cache, caching: {:?}", cached_solution);
-            self.cache.insert(provider_name, Arc::new(cached_solution)).await;
+            cache.insert(provider_name, Arc::new(cached_solution)).await;
 
             Ok(solution.response)
         }
