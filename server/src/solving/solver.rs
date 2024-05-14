@@ -49,10 +49,13 @@ impl<'a> Solver<'a> {
         url: T
     ) -> anyhow::Result<String> where T: IntoUrl {
         if let Some(solution) = self.cache.get(provider_name).await {
+            let headers = solution.header_map();
+            println!("{provider_name} found in cache, headers: {:?}", headers);
+
             let resp = self
                 .client
                 .get(url)
-                .headers(solution.header_map())
+                .headers(headers)
                 .send()
                 .await?;
             resp
@@ -74,6 +77,7 @@ impl<'a> Solver<'a> {
             let solution = json.solution;
 
             let cached_solution = solution.to_cached();
+            println!("{provider_name} not found in cache, caching: {:?}", cached_solution);
             self.cache.insert(provider_name, Arc::new(cached_solution)).await;
 
             Ok(solution.response)

@@ -1,4 +1,4 @@
-#### API
+#### Server
 
 ```bash
 docker run -d \      
