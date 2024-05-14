@@ -8,7 +8,7 @@ use provider::Provider;
 use reqwest::Client;
 use warp::{reject::{self, Rejection}, reply::Reply, Filter};
 
-use crate::solving::solution::CachedSolution;
+use crate::solving::{solution::CachedSolution, solver::Solver};
 
 pub mod error;
 pub mod html_select;
@@ -29,14 +29,24 @@ async fn main() -> () {
             .time_to_live(Duration::from_secs(3600 * 24))
             .build();
 
+    let client = Client::new();
+
+    let solver = Solver::create(&client, None).await.expect("could not initialize solver");
+
     let search = warp::get()
         .and(warp::path!("api" / "v1" / "search"))
         .and(extract_q())
-        .and_then(|search_term: String| search(search_term));
+        .and(with_client(client))
+        .and_then(|search_term: String, client: Client| search(client, search_term));
 
     let routes = search.recover(error::handle_rejection);
     println!("running at localhost:3030");
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+}
+
+// move to filters mod
+fn with_client(client: Client) -> impl Filter<Extract = (Client,), Error = Infallible> + Clone {
+    warp::any().map(move || client.clone())
 }
 
 fn extract_q() -> impl Filter<Extract = (String,), Error = Rejection> + Copy {
@@ -49,16 +59,20 @@ fn extract_q() -> impl Filter<Extract = (String,), Error = Rejection> + Copy {
         })
 }
 
-async fn search(search_term: String) -> Result<impl Reply, Infallible> {
+async fn search(
+    client: Client,
+    search_term: String,
+) -> Result<impl Reply, Infallible> {
     println!("received: {search_term}");
-    let res = fetch(&search_term).await;
+    let res = fetch(client, &search_term).await;
     println!("results: {:?}", res);
     Ok(warp::reply::json(&Response { items: res }))
 }
 
-async fn fetch(search_term: &str) -> Vec<Item> {
-    let client = Client::new();
-
+async fn fetch(
+    client: Client,
+    search_term: &str,
+) -> Vec<Item> {
     let providers = vec![Provider::BIKE_DISCOUNT, Provider::ALLTRICKS, Provider::STARBIKE];
     let providers_len = providers.len();
 

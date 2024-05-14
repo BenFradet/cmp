@@ -8,6 +8,7 @@ use super::{solution::CachedSolution, solver_response::SolverResponse};
 
 const FLARE_SOLVER: &'static str = "http://localhost:8191/v1";
 
+#[derive(Clone, Debug)]
 pub struct Solver {
     session_id: String,
 }
