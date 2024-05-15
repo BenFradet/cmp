@@ -3,7 +3,7 @@ use reqwest::{Client, IntoUrl};
 use scraper::{ElementRef, Html};
 use time::{formatting::Formattable, OffsetDateTime};
 
-use crate::{html_select::HtmlSelect, search::Search};
+use crate::{html_select::HtmlSelect, services::search::Search};
 
 #[derive(Eq, PartialEq)]
 pub struct Provider {
