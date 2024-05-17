@@ -6,6 +6,7 @@ use serde::Deserialize;
 use super::cookie::Cookie;
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Solution {
     pub headers: HashMap<String, String, RandomState>,
     pub user_agent: String,

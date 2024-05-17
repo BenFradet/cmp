@@ -24,6 +24,9 @@ impl Solver {
             .await?;
         let text = resp.text().await?;
         let json: Value = serde_json::from_str(&text)?;
+
+        println!("{:?}", json);
+
         // there is an end timestamp but it doesn't seem to be trustworthy
         let session_id = json["session"]
             .as_str()
@@ -43,6 +46,7 @@ impl Solver {
         if let Some(solution) = cache.get(provider_name).await {
             let headers = solution.header_map();
             println!("{provider_name} found in cache, headers: {:?}", headers);
+            println!("sending request to {}", url.as_str());
 
             let resp = client
                 .get(url)
@@ -73,6 +77,15 @@ impl Solver {
             Ok(solution.response)
         }
     }
+
+    //fn write_to_file(filename: &str, text: String) -> std::io::Result<()> {
+    //    use std::io::Write;
+    //    let mut fname = filename.to_owned();
+    //    fname.push_str(".html");
+    //    let mut file = std::fs::File::create(fname)?;
+    //    file.write_all(text.as_bytes())?;
+    //    Ok(())
+    //}
 
     fn session_create_body(session_id: Option<String>) -> String {
         match session_id {

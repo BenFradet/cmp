@@ -1,5 +1,6 @@
 use std::{collections::HashMap, convert::Infallible, hash::RandomState, sync::Arc};
 
+use domain::item::Item;
 use moka::future::Cache;
 use reqwest::Client;
 use warp::{reject::Rejection, Filter};
@@ -20,6 +21,15 @@ pub fn with_cookie_cache(
     cache: Cache<&'static str, Arc<CachedSolution>, RandomState>
 ) -> impl Filter<
     Extract = (Cache<&'static str, Arc<CachedSolution>, RandomState>,),
+    Error = Infallible
+> + Clone {
+    warp::any().map(move || cache.clone())
+}
+
+pub fn with_items_cache(
+    cache: Cache<String, Arc<Vec<Item>>, RandomState>
+) -> impl Filter<
+    Extract = (Cache<String, Arc<Vec<Item>>, RandomState>,),
     Error = Infallible
 > + Clone {
     warp::any().map(move || cache.clone())

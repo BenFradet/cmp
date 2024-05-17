@@ -79,6 +79,11 @@ impl Provider {
 
         let document = Html::parse_document(&text);
 
+        //if self.bypass_cloudflare {
+        //    println!("writing file");
+        //    Self::write_to_file(search_term, text).expect("file writing ok");
+        //}
+
         let inner_html_f = |e: ElementRef| html_escape::decode_html_entities(&e.inner_html())
             .trim()
             .to_owned();
@@ -99,6 +104,15 @@ impl Provider {
             logo_link: self.logo_link.to_owned(),
             time: dt,
         })
+    }
+
+    fn write_to_file(filename: &str, text: String) -> std::io::Result<()> {
+        use std::io::Write;
+        let mut fname = filename.to_owned();
+        fname.push_str(".html");
+        let mut file = std::fs::File::create(fname)?;
+        file.write_all(text.as_bytes())?;
+        Ok(())
     }
 
     async fn direct_search<T>(client: &Client, url: T) -> anyhow::Result<String> where T: IntoUrl {

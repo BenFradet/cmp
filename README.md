@@ -1,13 +1,14 @@
 #### Server
 
 ```bash
-docker run -d \      
+docker run -d \
   --name=flaresolverr \
   -p 8191:8191 \
   -e LOG_LEVEL=info \
-  --restart unless-stopped \
+  -m 4G \
   ghcr.io/flaresolverr/flaresolverr:latest
-cargo run -p server
+cd server
+cargo watch -x run
 curl -v -X GET http://localhost:3030/api/v1/search\?q\=Selle%20italia%20slr%20boost%20endurance
 ```
 

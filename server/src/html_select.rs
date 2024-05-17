@@ -14,14 +14,14 @@ impl HtmlSelect for Html {
             selector: &str,
             f: S
         ) -> anyhow::Result<A> {
-        let selector = Selector::parse(selector)
+        let sel = Selector::parse(selector)
             // no send for errors
             .map_err(|e| anyhow::anyhow!(e.to_string()))?;
         self
-            .select(&selector)
+            .select(&sel)
             .next()
             .map(|er| f(er))
-            .ok_or(anyhow::anyhow!("selector not found"))
+            .ok_or(anyhow::anyhow!("selector not found {selector}"))
         
     }
 }

@@ -3,10 +3,11 @@ use std::fmt::Display;
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Cookie {
     domain: String,
     expiry: Option<u64>,
-    http_only: bool,
+    http_only: Option<bool>,
     name: String,
     path: String,
     same_site: String,
