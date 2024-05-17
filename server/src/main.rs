@@ -13,7 +13,6 @@ pub mod filters;
 pub mod handlers;
 pub mod html_select;
 pub mod provider;
-pub mod services;
 pub mod solving;
 
 #[tokio::main(flavor = "multi_thread")]
@@ -33,14 +32,14 @@ async fn main() -> () {
         .and(warp::path!("api" / "v1" / "search"))
         .and(extract_q())
         .and(with_client(client))
-        .and(with_solver(solver))
         .and(with_cookie_cache(cookie_cache))
+        .and(with_solver(solver))
         .and_then(|
             search_term: String,
             client: Client,
-            solver: Solver,
             cookie_cache: Cache<&'static str, Arc<CachedSolution>, RandomState>,
-            | search(search_term, client, solver, cookie_cache));
+            solver: Solver,
+            | search(search_term, client, cookie_cache, solver));
 
     let routes = search.recover(error::handle_rejection);
     println!("running at localhost:3030");

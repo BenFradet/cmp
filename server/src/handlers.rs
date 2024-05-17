@@ -14,11 +14,11 @@ const DATE_FORMAT_STR: &'static str = "[year]-[month]-[day]-[hour]:[minute]:[sec
 pub async fn search(
     search_term: String,
     client: Client,
-    solver: Solver,
     cookie_cache: Cache<&'static str, Arc<CachedSolution>, RandomState>,
+    solver: Solver,
 ) -> Result<impl Reply, Infallible> {
     println!("received: {search_term}");
-    let res = fetch(&search_term, client, solver, cookie_cache).await;
+    let res = fetch(&search_term, client, cookie_cache, solver).await;
     println!("results: {:?}", res);
     Ok(warp::reply::json(&Response { items: res }))
 }
@@ -26,8 +26,8 @@ pub async fn search(
 async fn fetch(
     search_term: &str,
     client: Client,
-    solver: Solver,
     cookie_cache: Cache<&'static str, Arc<CachedSolution>, RandomState>,
+    solver: Solver,
 ) -> Vec<Item> {
     let providers = vec![Provider::BIKE_DISCOUNT, Provider::ALLTRICKS, Provider::STARBIKE];
     let providers_len = providers.len();
@@ -37,11 +37,13 @@ async fn fetch(
     let results = stream::iter(providers)
         .map(|p| {
             let client = client.clone();
+            let cookie_cache = cookie_cache.clone();
+            let solver = solver.clone();
             // corouting moves
             let s = search_term.to_owned();
             let fmt = date_fmt.clone();
             tokio::spawn(async move {
-                p.crawl(&client, &s, fmt).await
+                p.crawl(&client, cookie_cache, solver, &s, fmt).await
             })
         })
         .buffer_unordered(PARALLEL_REQUESTS)

@@ -1,9 +1,12 @@
+use std::{hash::RandomState, sync::Arc};
+
 use domain::item::Item;
+use moka::future::Cache;
 use reqwest::{Client, IntoUrl};
 use scraper::{ElementRef, Html};
 use time::{formatting::Formattable, OffsetDateTime};
 
-use crate::{html_select::HtmlSelect, services::search::Search};
+use crate::{html_select::HtmlSelect, solving::{solution::CachedSolution, solver::Solver}};
 
 #[derive(Eq, PartialEq)]
 pub struct Provider {
@@ -61,27 +64,26 @@ impl Provider {
     pub async fn crawl<F>(
         &self,
         client: &Client,
+        cookie_cache: Cache<&'static str, Arc<CachedSolution>, RandomState>,
+        solver: Solver,
         search_term: &str,
         date_format: F,
     ) -> anyhow::Result<Item> where F: Formattable + Sized {
         let search_url = self.search_url(search_term);
-        self.search(client, search_url, date_format).await
-    }
 
-    async fn search<T, F>(
-        &self,
-        client: &Client,
-        url: T,
-        date_format: F,
-    ) -> anyhow::Result<Item> where T: IntoUrl, F: Formattable + Sized {
-        // todo cache and reuse the cookie which is sent back
-        let text = client.search(url, self.bypass_cloudflare).await?;
+        let text = if self.bypass_cloudflare {
+            solver.solve(client, &cookie_cache, self.name, search_url).await?
+        } else {
+            Self::direct_search(client, search_url).await?
+        };
+
         let document = Html::parse_document(&text);
 
         let inner_html_f = |e: ElementRef| html_escape::decode_html_entities(&e.inner_html())
             .trim()
             .to_owned();
 
+        // todo: refactor
         let price = self.price(&document, inner_html_f)?;
         let image_link = self.img_link(&document)?;
         let name = self.name(&document, inner_html_f)?;
@@ -99,6 +101,13 @@ impl Provider {
         })
     }
 
+    async fn direct_search<T>(client: &Client, url: T) -> anyhow::Result<String> where T: IntoUrl {
+        let resp = client.get(url).send().await?;
+        resp.text().await
+            .map_err(|e| anyhow::anyhow!(e.to_string()))
+    }
+
+    // todo: extract link parsing
     fn name(&self, document: &Html, inner_html_f: fn(ElementRef) -> String) -> anyhow::Result<String> {
         let f = move |e: ElementRef| inner_html_f(e)
             .split("<br>")
