@@ -38,7 +38,7 @@ async fn fetch(
 
     let sanitized_search_term = sanitize_search_term(search_term);
 
-    if let Some(items) = items_cache.get(sanitized_search_term).await {
+    if let Some(items) = items_cache.get(&sanitized_search_term).await {
         items
     } else {
         let results = stream::iter(providers)
@@ -81,6 +81,6 @@ async fn fetch(
     }
 }
 
-fn sanitize_search_term(search_term: &str) -> &str {
-    search_term.trim()
+fn sanitize_search_term(search_term: &str) -> String {
+    search_term.trim().to_lowercase()
 }

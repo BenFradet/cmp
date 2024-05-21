@@ -25,8 +25,6 @@ impl Solver {
         let text = resp.text().await?;
         let json: Value = serde_json::from_str(&text)?;
 
-        println!("{:?}", json);
-
         // there is an end timestamp but it doesn't seem to be trustworthy
         let session_id = json["session"]
             .as_str()
