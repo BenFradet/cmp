@@ -23,7 +23,7 @@ pub fn entries(props: &EntriesProps) -> HtmlResult {
     let result_html = match *results {
         Ok(ref items) =>
             if items.is_empty() {
-                html! { "not found" }
+                html! { <div><Hero text="No results were found, sorry ☹" /></div> }
             } else {
                 // todo: find a way without clone
                 let mut items = items.clone();
@@ -48,7 +48,7 @@ pub fn entries(props: &EntriesProps) -> HtmlResult {
             },
         Err(ref failure) => {
             console::log_1(&format!("failure to receive response: {failure}").into());
-            failure.to_string().into()
+            html! { <div><Hero text="There was an error, sorry ☹" /></div> }
         },
     };
     Ok(result_html)
