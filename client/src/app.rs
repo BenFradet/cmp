@@ -17,13 +17,19 @@ pub fn app() -> Html {
     };
 
     html! {
-        <section class="section">
-            <div class="container">
-                <Input {on_search} />
-                <Suspense {fallback}>
-                    <Entries input={(*input).clone()} />
-                </Suspense>
+        <div class="columns">
+            <div class="column">{"Ad here"}</div>
+            <div class="column is-four-fifths">
+                <section class="section">
+                    <div class="container">
+                        <Input {on_search} />
+                        <Suspense {fallback}>
+                            <Entries input={(*input).clone()} />
+                        </Suspense>
+                    </div>
+                </section>
             </div>
-        </section>
+            <div class="column">{"Ad here"}</div>
+        </div>
     }
 }
