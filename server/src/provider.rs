@@ -4,6 +4,7 @@ use domain::item::Item;
 use moka::future::Cache;
 use reqwest::{Client, IntoUrl};
 use scraper::{ElementRef, Html};
+use strsim::jaro_winkler;
 use time::{formatting::Formattable, OffsetDateTime};
 
 use crate::{html_select::HtmlSelect, solving::{solution::CachedSolution, solver::Solver}};
@@ -68,7 +69,7 @@ impl Provider {
         solver: Solver,
         search_term: &str,
         date_format: F,
-    ) -> anyhow::Result<Item> where F: Formattable + Sized {
+    ) -> anyhow::Result<Option<Item>> where F: Formattable + Sized {
         let search_url = self.search_url(search_term);
 
         let text = if self.bypass_cloudflare {
@@ -90,15 +91,22 @@ impl Provider {
         let product_link = self.product_link(&document)?;
 
         let dt = OffsetDateTime::now_utc().format(&date_format)?;
-        Ok(Item {
-            name,
-            provider: self.name.to_owned(),
-            price,
-            image_link,
-            product_link,
-            logo_link: self.logo_link.to_owned(),
-            time: dt,
-        })
+
+        let sim = jaro_winkler(&name, search_term);
+
+        if sim > 0.7 {
+            Ok(Some(Item {
+                name,
+                provider: self.name.to_owned(),
+                price,
+                image_link,
+                product_link,
+                logo_link: self.logo_link.to_owned(),
+                time: dt,
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
     async fn direct_search<T>(client: &Client, url: T) -> anyhow::Result<String> where T: IntoUrl {

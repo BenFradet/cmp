@@ -61,7 +61,7 @@ async fn fetch(
         let items: Vec<Item> = results
             .into_iter()
             .map(|r| match r {
-                Ok(Ok(s)) => Some(s),
+                Ok(Ok(s)) => s,
                 Ok(Err(e)) => {
                     println!("crawl error: {e}");
                     None

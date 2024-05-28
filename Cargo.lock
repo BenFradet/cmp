@@ -2188,6 +2188,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "strsim",
  "time",
  "tokio",
  "urlencoding",
