@@ -19,30 +19,34 @@ pub struct MissingQueryParam;
 impl Reject for MissingQueryParam {}
 
 pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
-    let code;
-    let message;
-
-    if err.is_not_found() {
-        code = StatusCode::NOT_FOUND;
-        message = "NOT_FOUND".to_string();
+    let(code, message) = if err.is_not_found() {
+        (
+            StatusCode::NOT_FOUND,
+            "NOT_FOUND".to_string(),
+        )
     } else if let Some(MissingQueryParam) = err.find() {
-        code = StatusCode::BAD_REQUEST;
-        message = MISSING_QUERY_PARAM_MSG.to_string();
+        (
+            StatusCode::BAD_REQUEST,
+            MISSING_QUERY_PARAM_MSG.to_string(),
+        )
     } else if let Some(RateLimited { remaining_duration }) = err.find::<RateLimited>() {
-        code = StatusCode::TOO_MANY_REQUESTS;
         let seconds = remaining_duration.as_secs();
-        message = format!("Too many requests, rate limited for {seconds} seconds");
+        (
+            StatusCode::TOO_MANY_REQUESTS,
+            format!("Too many requests, rate limited for {seconds} seconds"),
+        )
     } else if let Some(_) = err.find::<warp::reject::MethodNotAllowed>() {
-        // We can handle a specific error, here METHOD_NOT_ALLOWED,
-        // and render it however we want
-        code = StatusCode::METHOD_NOT_ALLOWED;
-        message = "METHOD_NOT_ALLOWED".to_string();
+        (
+            StatusCode::METHOD_NOT_ALLOWED,
+            "METHOD_NOT_ALLOWED".to_string(),
+        )
     } else {
-        // We should have expected this... Just log and say its a 500
         eprintln!("unhandled rejection: {:?}", err);
-        code = StatusCode::INTERNAL_SERVER_ERROR;
-        message = "UNHANDLED_REJECTION".to_string();
-    }
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "UNHANDLED_REJECTION".to_string(),
+        )
+    };
 
     let json = warp::reply::json(&ErrorMessage {
         code: code.as_u16(),
