@@ -9,6 +9,8 @@ use time::{formatting::Formattable, OffsetDateTime};
 
 use crate::{html_select::HtmlSelect, solving::{solution::CachedSolution, solver::Solver}};
 
+const SIM_THRESHOLD: f64 = 0.5;
+
 #[derive(Eq, PartialEq)]
 pub struct Provider {
     name: &'static str,
@@ -23,6 +25,13 @@ pub struct Provider {
 }
 
 impl Provider {
+    pub const ALL: [Provider; 4] = [
+        Self::ALLTRICKS,
+        Self::BIKE_DISCOUNT,
+        Self::LORDGUN,
+        Self::STARBIKE,
+    ];
+
     pub const ALLTRICKS: Provider = 
         Provider {
             name: "Alltricks",
@@ -51,7 +60,7 @@ impl Provider {
 
     pub const STARBIKE: Provider =
         Provider {
-            name: "starbike",
+            name: "Starbike",
             top_level_domain: "https://www.starbike.com",
             search_prefix: "/en/search/?q=",
             name_selector: r#"a.pb-link"#,
@@ -59,6 +68,19 @@ impl Provider {
             price_selector: r#"span.productbox-price"#,
             image_selector: r#"li.uk-margin-remove-top.uk-position-relative.uk-display-block div.uk-text-center.uk-position-relative > img.pb-link-trigger.product-box.productbox-image"#,
             logo_link: "https://cdn.starbike.com/logo.svg",
+            bypass_cloudflare: false,
+        };
+
+    pub const LORDGUN: Provider =
+        Provider {
+            name: "Lordgun",
+            top_level_domain: "https://www.lordgunbicycles.fr",
+            search_prefix: "/recherche?s=",
+            name_selector: r#"a.article__link"#,
+            link_selector: r#"a.article__link"#,
+            price_selector: r#"span.product__price > span > span:nth-child(2) > strong"#,
+            image_selector: r#"figure.article__figure > a.link"#,
+            logo_link: "https://sync.lordgunbicycles.com:4433/img/logo.lordgun.svg",
             bypass_cloudflare: false,
         };
 
@@ -94,7 +116,7 @@ impl Provider {
 
         let sim = jaro_winkler(&name, search_term);
 
-        if sim > 0.7 {
+        if sim > SIM_THRESHOLD {
             Ok(Some(Item {
                 name,
                 provider: self.name.to_owned(),
@@ -105,6 +127,7 @@ impl Provider {
                 time: dt,
             }))
         } else {
+            println!("discarding {} with similarity {}", self.name, sim);
             Ok(None)
         }
     }
@@ -127,6 +150,7 @@ impl Provider {
 
     fn price(&self, document: &Html, inner_html_f: fn(ElementRef) -> String) -> anyhow::Result<Option<f64>> {
         let f = move |e: ElementRef| {
+            println!("price for {}: {}", self.name, e.inner_html());
             inner_html_f(e)
                 .replace("€", "")
                 // parser is mega finicky
@@ -152,10 +176,10 @@ impl Provider {
     fn img_link(&self, document: &Html) -> anyhow::Result<String> {
         let f = move |e: ElementRef| {
             let res = match *self {
-                Self::ALLTRICKS => e.attr("src").map(|s| s.to_owned()),
                 Self::BIKE_DISCOUNT => e.attr("srcset").and_then(|s| s.split(",").next()).map(|s| s.to_owned()),
                 Self::STARBIKE => e.attr("lazyload").map(|s| s.replace("%W%", "200").replace("%H%", "200")),
-                _ => None,
+                Self::LORDGUN => e.attr("data-src").map(|s| s.to_owned()),
+                _ => e.attr("src").map(|s| s.to_owned()),
             };
             res.unwrap_or("not found".to_owned())
         };

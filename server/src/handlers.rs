@@ -31,8 +31,7 @@ async fn fetch(
     cookie_cache: Cache<&'static str, Arc<CachedSolution>, RandomState>,
     solver: Solver,
 ) -> Arc<Vec<Item>> {
-    let providers = vec![Provider::BIKE_DISCOUNT, Provider::ALLTRICKS, Provider::STARBIKE];
-    let providers_len = providers.len();
+    let providers_len = Provider::ALL.len();
 
     let date_fmt = time::format_description::parse(&DATE_FORMAT_STR).unwrap();
 
@@ -41,7 +40,7 @@ async fn fetch(
     if let Some(items) = items_cache.get(&sanitized_search_term).await {
         items
     } else {
-        let results = stream::iter(providers)
+        let results = stream::iter(Provider::ALL)
             .map(|p| {
                 let client = client.clone();
                 let cookie_cache = cookie_cache.clone();
