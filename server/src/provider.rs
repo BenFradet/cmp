@@ -1,6 +1,7 @@
 use std::{hash::RandomState, sync::Arc};
 
 use domain::item::Item;
+use futures::future::select;
 use moka::future::Cache;
 use reqwest::{Client, IntoUrl};
 use scraper::{ElementRef, Html};
@@ -22,11 +23,13 @@ pub struct Provider {
     image_selector: &'static str,
     logo_link: &'static str,
     bypass_cloudflare: bool,
+    relative_image: bool,
 }
 
 impl Provider {
-    pub const ALL: [Provider; 4] = [
+    pub const ALL: [Provider; 5] = [
         Self::ALLTRICKS,
+        Self::BIKE_COMPONENTS,
         Self::BIKE_DISCOUNT,
         Self::LORDGUN,
         Self::STARBIKE,
@@ -43,6 +46,7 @@ impl Provider {
             image_selector: r#"span.alltricks-Product-picture > img"#,
             logo_link: "https://www.alltricks.fr/fstrz/r/s/www.alltricks.fr/images/2022_ALLTRICKS_QUADRI_ORIGINAL_BLANC.svg",
             bypass_cloudflare: false,
+            relative_image: false,
         };
 
     pub const BIKE_DISCOUNT: Provider = 
@@ -56,6 +60,7 @@ impl Provider {
             image_selector: r#"span.image--media > img"#,
             logo_link: "https://cdn.starbike.com/logo.svg",
             bypass_cloudflare: true,
+            relative_image: false,
         };
 
     pub const STARBIKE: Provider =
@@ -69,6 +74,7 @@ impl Provider {
             image_selector: r#"li.uk-margin-remove-top.uk-position-relative.uk-display-block div.uk-text-center.uk-position-relative > img.pb-link-trigger.product-box.productbox-image"#,
             logo_link: "https://cdn.starbike.com/logo.svg",
             bypass_cloudflare: false,
+            relative_image: false,
         };
 
     pub const LORDGUN: Provider =
@@ -82,6 +88,24 @@ impl Provider {
             image_selector: r#"figure.article__figure > a.link > img"#,
             logo_link: "https://sync.lordgunbicycles.com:4433/img/logo.lordgun.svg",
             bypass_cloudflare: false,
+            relative_image: false,
+        };
+
+    pub const BIKE_COMPONENTS: Provider =
+        Provider {
+            name: "Bike-Components",
+            top_level_domain: "https://www.bike-components.de",
+            search_prefix: "/en/s/?keywords=",
+            // has html comments
+            name_selector: r#"h3.headline.site-headline-s-lowercase"#,
+            link_selector: r#"a.product-item.js-product-item"#,
+            price_selector: r#"div.prices > div.price.site-price"#,
+            // relative
+            image_selector: r#"div.site-product-image.relative > picture > img.object-bottom"#,
+            // not sure it works
+            logo_link: "https://www.bike-components.de/assets/build/9c5f83272131c0d32378-spritemap.svg",
+            bypass_cloudflare: false,
+            relative_image: true,
         };
 
     pub async fn crawl<F>(
@@ -143,14 +167,14 @@ impl Provider {
         let f = move |e: ElementRef| inner_html_f(e)
             .split("<br>")
             .last()
-            .unwrap_or("not_found")
-            .to_owned();
+            // bike-components
+            .map(|s| s.replace("<!--[-->", "").replace("<!--]-->", ""))
+            .unwrap_or("not_found".to_string());
         document.html_select(&self.name_selector, f)
     }
 
     fn price(&self, document: &Html, inner_html_f: fn(ElementRef) -> String) -> anyhow::Result<Option<f64>> {
         let f = move |e: ElementRef| {
-            println!("price for {}: {}", self.name, e.inner_html());
             inner_html_f(e)
                 .replace("€", "")
                 // parser is mega finicky
@@ -183,7 +207,12 @@ impl Provider {
             };
             res.unwrap_or("not found".to_owned())
         };
-        document.html_select(&self.image_selector, f)
+        let selected = document.html_select(&self.image_selector, f)?;
+        if self.relative_image {
+            Ok(self.top_level_domain.to_owned() + &selected)
+        } else {
+            Ok(selected)
+        }
     }
 
     fn search_url(&self, search_term: &str) -> String {

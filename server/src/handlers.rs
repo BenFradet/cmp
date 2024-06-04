@@ -8,7 +8,7 @@ use warp::reply::Reply;
 
 use crate::{provider::Provider, solving::{solution::CachedSolution, solver::Solver}};
 
-const PARALLEL_REQUESTS: usize = 3;
+const PARALLEL_REQUESTS: usize = 5;
 const DATE_FORMAT_STR: &'static str = "[year]-[month]-[day]-[hour]:[minute]:[second]";
 
 pub async fn search(
