@@ -79,7 +79,7 @@ impl Provider {
             name_selector: r#"a.article__link"#,
             link_selector: r#"a.article__link"#,
             price_selector: r#"span.product__price > span > span:nth-child(2) > strong"#,
-            image_selector: r#"figure.article__figure > a.link"#,
+            image_selector: r#"figure.article__figure > a.link > img"#,
             logo_link: "https://sync.lordgunbicycles.com:4433/img/logo.lordgun.svg",
             bypass_cloudflare: false,
         };
