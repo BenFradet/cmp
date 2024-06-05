@@ -45,7 +45,7 @@ pub fn input(props: &InputProps) -> Html {
     html! {
         <div class="field has-addons">
             <div class="control has-icons-left has-icons-right is-expanded">
-                <input ref={input_ref} type="text" class="input is-info is-large" placeholder="Selle italia slr boost endurance" {onkeypress} />
+                <input ref={input_ref} type="text" class="input is-info is-large" placeholder="slr boost endurance" {onkeypress} />
                 <span class="icon is-left">
                     <i class="fas fa-magnifying-glass"></i>
                 </span>
