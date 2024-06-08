@@ -5,7 +5,7 @@ use moka::future::Cache;
 use reqwest::Client;
 use warp::{reject::Rejection, Filter};
 
-use crate::{error::MissingQueryParam, solving::{solution::CachedSolution, solver::Solver}};
+use crate::{error::MissingQueryParam, solve::{solution::CachedSolution, solver::Solver}};
 
 const QUERY_PARAM: &'static str = "q";
 

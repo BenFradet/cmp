@@ -6,7 +6,7 @@ use rate_limit::{rate_limit, Rate};
 use reqwest::Client;
 use warp::Filter;
 
-use crate::solving::{solution::CachedSolution, solver::Solver};
+use crate::solve::{solution::CachedSolution, solver::Solver};
 use crate::filters::*;
 use crate::handlers::search;
 
@@ -15,8 +15,8 @@ pub mod filters;
 pub mod handlers;
 pub mod provider;
 pub mod rate_limit;
-pub mod selecting;
-pub mod solving;
+pub mod select;
+pub mod solve;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> () {

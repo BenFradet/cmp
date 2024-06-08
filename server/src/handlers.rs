@@ -6,7 +6,7 @@ use moka::future::Cache;
 use reqwest::Client;
 use warp::reply::Reply;
 
-use crate::{provider::Provider, solving::{solution::CachedSolution, solver::Solver}};
+use crate::{provider::Provider, solve::{solution::CachedSolution, solver::Solver}};
 
 const PARALLEL_REQUESTS: usize = 6;
 const DATE_FORMAT_STR: &'static str = "[year]-[month]-[day]-[hour]:[minute]:[second]";

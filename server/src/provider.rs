@@ -7,7 +7,7 @@ use scraper::{ElementRef, Html};
 use strsim::jaro_winkler;
 use time::{formatting::Formattable, OffsetDateTime};
 
-use crate::{selecting::{html_select::HtmlSelect, selector::Selector}, solving::{solution::CachedSolution, solver::Solver}};
+use crate::{select::{html_select::HtmlSelect, selector::Selector}, solve::{solution::CachedSolution, solver::Solver}};
 
 const SIM_THRESHOLD: f64 = 0.5;
 
