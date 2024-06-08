@@ -1,20 +1,20 @@
 use std::{hash::RandomState, sync::Arc, time::Duration};
 
 use domain::item::Item;
+use filter::extraction::extract_q;
+use filter::injection::*;
+use filter::rate_limit::{rate_limit, Rate};
 use moka::future::Cache;
-use rate_limit::{rate_limit, Rate};
 use reqwest::Client;
 use warp::Filter;
 
 use crate::solve::{solution::CachedSolution, solver::Solver};
-use crate::filters::*;
 use crate::handlers::search;
 
 pub mod error;
-pub mod filters;
+pub mod filter;
 pub mod handlers;
 pub mod provider;
-pub mod rate_limit;
 pub mod select;
 pub mod solve;
 

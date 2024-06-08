@@ -1,9 +1,7 @@
-use std::convert::Infallible;
+use std::{convert::Infallible, time::Duration};
 
 use serde_derive::Serialize;
 use warp::{http::StatusCode, reject::{Reject, Rejection}, reply::Reply};
-
-use crate::rate_limit::RateLimited;
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -17,6 +15,13 @@ const MISSING_QUERY_PARAM_MSG: &'static str = "No \"q\" query parameter specifie
 pub struct MissingQueryParam;
 
 impl Reject for MissingQueryParam {}
+
+#[derive(Debug)]
+pub struct RateLimited {
+    pub remaining_duration: Duration,
+}
+
+impl Reject for RateLimited {}
 
 pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
     let(code, message) = if err.is_not_found() {
