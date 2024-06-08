@@ -7,32 +7,10 @@ use scraper::{ElementRef, Html};
 use strsim::jaro_winkler;
 use time::{formatting::Formattable, OffsetDateTime};
 
-use crate::{html_select::HtmlSelect, solving::{solution::CachedSolution, solver::Solver}};
+use crate::{selecting::{html_select::HtmlSelect, selector::Selector}, solving::{solution::CachedSolution, solver::Solver}};
 
 const SIM_THRESHOLD: f64 = 0.5;
 
-// todo: move to selecting folder
-#[derive(Eq, PartialEq)]
-pub struct Selector {
-    s: &'static str,
-    relative: bool
-}
-
-impl Selector {
-    pub const fn direct(s: &'static str) -> Self {
-        Self {
-            s,
-            relative: false,
-        }
-    }
-
-    pub const fn relative(s: &'static str) -> Self {
-        Self {
-            s,
-            relative: true,
-        }
-    }
-}
 
 #[derive(Eq, PartialEq)]
 pub struct Provider {

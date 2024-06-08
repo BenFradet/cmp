@@ -13,9 +13,9 @@ use crate::handlers::search;
 pub mod error;
 pub mod filters;
 pub mod handlers;
-pub mod html_select;
 pub mod provider;
 pub mod rate_limit;
+pub mod selecting;
 pub mod solving;
 
 #[tokio::main(flavor = "multi_thread")]
